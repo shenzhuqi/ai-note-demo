@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 关联笔记推荐 · 效果验证 Demo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"SF Pro Display","PingFang SC","Noto Sans SC",sans-serif;background:#0a0a0f;color:#e8e8f0;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+
+/* ── Page Header ── */
+.page-header{text-align:center;padding:48px 20px 24px}
+.page-header h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,#FF6A00,#FF8C33,#FFB366);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.page-header .sub{font-size:12px;color:#5a5a72;margin-top:6px;line-height:1.6}
+
+/* ── Dataset Switcher ── */
+.ds-bar{display:flex;gap:8px;justify-content:center;padding:0 20px 20px}
+.ds-btn{font-size:12px;padding:7px 18px;border-radius:100px;border:1px solid #2a2a3a;color:#8888a0;cursor:pointer;transition:all 0.2s;background:transparent}
+.ds-btn:hover{border-color:#333348;color:#e8e8f0}
+.ds-btn.active{background:rgba(255,106,0,0.08);border-color:rgba(255,106,0,0.2);color:#FF6A00;font-weight:600}
+.phone{width:375px;height:780px;background:#fff;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 8px 48px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.05);flex-shrink:0;display:flex;flex-direction:column}
+.ph-sb{display:flex;justify-content:space-between;align-items:center;padding:12px 28px 0;height:40px}
+.ph-sb .time{font-size:14px;font-weight:700;color:#1a1a1a}
+.ph-sb .right{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#1a1a1a}
+.ph-nav{display:flex;align-items:center;padding:6px 16px 8px;gap:4px}
+.ph-nav .back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.ph-nav .spacer{flex:1}
+.ph-nav .nav-title{font-size:16px;font-weight:600;color:#1a1a1a;flex:1;text-align:center}
+.ph-nav .act{width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ph-scroll{overflow-y:auto;height:calc(100% - 40px - 46px);padding:0}
+.ph-scroll::-webkit-scrollbar{display:none}
+
+/* ── Home: Note List ── */
+.home-status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.home-status .time{font-size:15px;font-weight:700;color:#1a1a1a}
+.home-status .icons{font-size:11px;color:#333;display:flex;align-items:center;gap:4px}
+.home-top{display:flex;align-items:center;justify-content:flex-end;padding:0 20px 0;gap:14px;flex-shrink:0}
+.home-top .icon-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#333;cursor:pointer}
+.home-header{padding:8px 24px 6px}
+.home-header h2{font-size:28px;font-weight:700;color:#1a1a1a}
+.home-search{margin:4px 24px 10px;display:flex;align-items:center;gap:8px;font-size:15px;color:#bbb;border-bottom:1px solid #f0f0f0;padding-bottom:10px}
+.folder-bar{display:flex;gap:0;padding:0 16px 14px;overflow-x:auto;flex-shrink:0;align-items:center;-webkit-overflow-scrolling:touch}
+.folder-bar::-webkit-scrollbar{display:none}
+.folder-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;color:#666}
+.folder-chip{padding:7px 18px;border-radius:20px;font-size:13px;white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0;color:#666;background:transparent}
+.folder-chip.active{background:#FF6A00;color:#fff;font-weight:600}
+.note-list{padding:0 24px 100px}
+.note-entry{padding:18px 0;border-bottom:1px solid #f5f5f5;cursor:pointer}
+.note-entry:last-child{border-bottom:none}
+.note-entry:active{opacity:0.7}
+.ne-title{font-size:16px;font-weight:600;color:#1a1a1a;line-height:1.4}
+.ne-preview{font-size:13.5px;color:#888;line-height:1.6;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ne-date{font-size:12px;color:#bbb;margin-top:8px}
+.home-bottom-bar{height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:48px;flex-shrink:0;position:absolute;bottom:0;left:0;right:0;padding-bottom:4px}
+.home-bottom-bar .btn-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#333;cursor:pointer}
+.home-bottom-bar .btn-mic{width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+/* ── Detail Page ── */
+.detail-page{display:none}
+.note-title{font-size:20px;font-weight:700;color:#1a1a1a;line-height:1.3;margin-bottom:6px;padding:0 20px}
+.note-meta{font-size:11px;color:#999;margin-bottom:14px;padding:0 20px;display:flex;align-items:center;gap:4px}
+.note-content{font-size:13.5px;line-height:1.85;color:#333;padding:0 20px}
+.note-content .sh{font-size:14px;font-weight:600;color:#1a1a1a;margin:14px 0 6px}
+.note-content p{margin-bottom:8px}
+.note-content pre{background:#f5f5f5;border-radius:6px;padding:10px;margin:8px 0;overflow-x:auto;font-size:11px;line-height:1.5}
+.note-content code{font-family:"SF Mono","Fira Code",monospace;font-size:11px}
+
+/* ── Related Notes ── */
+.related-area{margin:24px 0 100px;padding:0 20px}
+.related-label{font-size:12px;color:#999;margin-bottom:8px}
+.related-card{display:flex;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid #f0f0f3;cursor:pointer;transition:background 0.15s}
+.related-card:last-child{border-bottom:none}
+.related-card:active{background:rgba(0,0,0,0.02)}
+.rc-icon{width:20px;height:20px;flex-shrink:0;color:#bbb}
+.rc-title{flex:1;font-size:14px;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-chevron{flex-shrink:0;color:#ccc}
+.enable-card{margin:24px 20px 100px;padding:20px;background:linear-gradient(135deg,#f8f9ff,#f0f4ff);border:1px solid rgba(59,130,246,0.12);border-radius:14px;text-align:center}
+.enable-card .ec-icon{font-size:24px;margin-bottom:8px}
+.enable-card .ec-title{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:6px}
+.enable-card .ec-desc{font-size:12px;color:#888;line-height:1.5;margin-bottom:14px}
+.enable-card .ec-btn{display:inline-block;padding:8px 28px;background:#3b82f6;color:#fff;font-size:13px;font-weight:600;border-radius:20px;cursor:pointer;transition:background 0.2s}
+.enable-card .ec-btn:active{background:#2563eb}
+.enable-card .ec-loading{font-size:12px;color:#3b82f6;padding:10px 0}
+.enable-card .ec-loading .spinner{display:inline-block;width:14px;height:14px;border:2px solid #3b82f6;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Settings Page ── */
+.settings-page{display:flex;flex-direction:column;height:100%;background:#f5f5f7;border-radius:44px;overflow:hidden}
+.settings-scroll{flex:1;overflow-y:auto;padding:0 0 40px}
+.settings-group{background:#fff;border-radius:12px;margin:12px 16px;overflow:hidden}
+.settings-group-title{font-size:12px;color:#888;padding:20px 16px 6px;text-transform:uppercase;letter-spacing:0.5px}
+.settings-item{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f0f0f2}
+.settings-item:last-child{border-bottom:none}
+.settings-item .si-label{flex:1;font-size:15px;color:#1a1a1a}
+.settings-item .si-desc{font-size:12px;color:#999;margin-top:2px}
+.settings-item .si-toggle{width:44px;height:26px;border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
+.si-toggle.off{background:#e0e0e0}
+.si-toggle.on{background:#34c759}
+.si-toggle::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:2px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
+.si-toggle.off::after{left:2px}
+.si-toggle.on::after{left:20px}
+
+/* ── Bottom Pill ── */
+.ph-bottom{position:absolute;bottom:0;left:0;right:0;padding:8px 20px 32px;background:linear-gradient(transparent,#fff 20%);pointer-events:none}
+.ai-pill{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #eee;border-radius:100px;padding:10px 16px;box-shadow:0 1px 6px rgba(0,0,0,0.04);pointer-events:auto}
+.ai-pill .pill-text{font-size:13px;color:#999;flex:1}
+
+/* ── Right Panel ── */
+.right-panel{position:absolute;left:calc(50% + 375px/2 + 24px);top:0;width:340px;max-height:780px;overflow-y:auto;display:none;flex-direction:column;gap:12px}
+.right-panel::-webkit-scrollbar{display:none}
+.right-panel.visible{display:flex}
+.rp-card{background:#16161e;border:1px solid #2a2a3a;border-radius:12px;padding:14px 16px}
+.rp-title{font-size:13px;font-weight:600;color:#a0a0c0;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.rp-title .badge{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(255,106,0,0.08);color:#FF6A00;border:1px solid rgba(255,106,0,0.2);margin-left:auto}
+.rp-json{background:#0d0d14;border:1px solid #2a2a3a;border-radius:8px;padding:10px;font-family:"SF Mono","Fira Code",monospace;font-size:10px;line-height:1.6;color:#a0a0c0;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto}
+.rp-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(42,42,58,0.5);font-size:12px;color:#e8e8f0}
+.rp-row:last-child{border-bottom:none}
+.rp-row .dim{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600}
+.dim-project{background:rgba(59,130,246,0.08);color:#3b82f6;border:1px solid rgba(59,130,246,0.18)}
+.dim-topic{background:rgba(34,197,94,0.08);color:#22c55e;border:1px solid rgba(34,197,94,0.18)}
+.dim-person{background:rgba(234,179,8,0.08);color:#eab308;border:1px solid rgba(234,179,8,0.18)}
+.conf-bar{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+.conf-track{width:40px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.conf-fill{height:100%;border-radius:2px}
+.conf-val{font-size:10px;font-weight:600;font-family:"SF Mono",monospace}
+.rp-empty{text-align:center;color:#7a7a92;font-size:12px;padding:16px 0}
+
+@media(max-width:900px){.right-panel{display:none!important}}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>AI 关联笔记推荐 · 效果验证</h1>
+  <div class="sub">点击笔记进入详情页，底部展示 AI 实时计算的关联笔记推荐结果</div>
+</div>
+
+<div class="ds-bar">
+  <div class="ds-btn active" onclick="switchDataset(0)">数据集A：个人真实笔记（25篇）</div>
+  <div class="ds-btn" onclick="switchDataset(1)">数据集B：飞书文档库（32篇）</div>
+  <div class="ds-btn" onclick="switchDataset(2)">数据集C：Kiro工作区文档（20篇）</div>
+</div>
+
+<div style="position:relative;padding:0 20px 60px;display:flex;justify-content:center">
+<div class="phone" id="phone"></div>
+<div class="right-panel" id="rightPanel"></div>
+</div>
+
+<script src="dataset-b-feishu33.js"></script>
+<script src="dataset-c-personal.js"></script>
+<script src="dataset-a-content.js"></script>
+<script src="dataset-b-content.js"></script>
+<script src="dataset-c-content.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATASET MANAGEMENT
+// ══════════════════════════════════════════════════════════════
+var currentDataset = 0;
+var NOTES, LLM_RESULTS, LLM_FILTERED;
+var homeScrollTop = 0;
+var currentFilter = undefined;
+var aiRelatedEnabled = false;
+
+function switchDataset(idx) {
+  currentDataset = idx;
+  if (idx === 0) {
+    NOTES = NOTES_C; LLM_RESULTS = LLM_RESULTS_C; LLM_FILTERED = LLM_FILTERED_C;
+    // Inject full content from CONTENT_C
+    if (typeof CONTENT_C !== 'undefined') {
+      for (var i = 0; i < NOTES.length; i++) {
+        if (CONTENT_C[NOTES[i].id]) NOTES[i].content = CONTENT_C[NOTES[i].id];
+      }
+    }
+  } else if (idx === 1) {
+    NOTES = NOTES_B; LLM_RESULTS = LLM_RESULTS_B; LLM_FILTERED = LLM_FILTERED_B;
+    // Inject full content from CONTENT_B
+    if (typeof CONTENT_B !== 'undefined') {
+      for (var i = 0; i < NOTES.length; i++) {
+        if (CONTENT_B[NOTES[i].id]) NOTES[i].content = CONTENT_B[NOTES[i].id];
+      }
+    }
+  } else if (idx === 2) {
+    NOTES = NOTES_A; LLM_RESULTS = LLM_RESULTS_A; LLM_FILTERED = LLM_FILTERED_A;
+    // Inject full content from CONTENT_A
+    if (typeof CONTENT_A !== 'undefined') {
+      for (var i = 0; i < NOTES.length; i++) {
+        if (CONTENT_A[NOTES[i].id]) NOTES[i].content = CONTENT_A[NOTES[i].id];
+      }
+    }
+  }
+  // Update button styles
+  var btns = document.querySelectorAll('.ds-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].classList.toggle('active', i === idx);
+  }
+  renderHome();
+}
+
+// ── Dataset A: 工作区20篇 ──
+var NOTES_A = [
+  {
+    id: 1, title: "笔记详情页关联笔记推荐方案",
+    category: "需求文档", date: "4/18 14:30", chars: 4200, color: "#3b82f6",
+    keywords: ["关联笔记","推荐","详情页","AI策略","三层计算","实体匹配","语义相似度","LLM","置信度","展示","交互","Obsidian","竞品","双链","embedding","手动引用"],
+    projects: ["关联笔记推荐","AI笔记"],
+    preview: "当前笔记之间缺乏关联，每篇笔记都是孤立的。随着笔记数量增长，用户面临检索困难、信息碎片化、知识沉没等问题。",
+    content: `<div class="sh">需求背景</div><p>当前笔记之间缺乏关联，每篇笔记都是孤立的。随着笔记数量增长，用户面临以下问题：</p><p>1. 检索困难：搜索依赖精确关键词，无法覆盖模糊检索场景。</p><p>2. 信息碎片化：同一项目或话题的内容分散在多篇笔记中。</p><p>3. 知识沉没：早期记录的灵感无法与后续新内容自动关联。</p><p>4. 整理成本高：文件夹、标签、手动链接需要额外操作成本。</p><div class="sh">竞品分析</div><p>Obsidian 以双向链接和关系图谱为核心；Reminds 用 AI 自动推荐 + 星图；Notion 手动关联 + AI 辅助。我们选择 AI 自动关联为主，手动引用为辅。</p><div class="sh">F2：AI 关联策略</div><p>三层叠加计算：实体匹配 → 语义相似度 → LLM 精细判断。5 个关联维度：人物、项目、主题、时间、待办。置信度 ≥ 0.6 才展示，最多 3 条。</p>`
+  },
+  {
+    id: 2, title: "关联内容推荐竞品调研",
+    category: "竞品分析", date: "4/15 09:00", chars: 5200, color: "#a855f7",
+    keywords: ["关联","推荐","竞品","Obsidian","Reminds","Notion","Netflix","YouTube","Spotify","Amazon","小红书","Pinterest","双链","图谱","星图","协同过滤","语义"],
+    projects: ["关联笔记推荐"],
+    preview: "关联推荐的核心体验差异在于：用户是否需要手动建立关联。笔记工具领域正从\u201c手动链接\u201d向\u201cAI 自动发现\u201d演进。",
+    content: '<div class="sh">一句话结论</div><p>关联推荐的核心体验差异在于：用户是否需要手动建立关联。笔记工具领域正从\u201c手动链接\u201d向\u201cAI 自动发现\u201d演进，而内容/电商/社交平台早已跑通了全自动推荐。</p><div class="sh">笔记工具类</div><p>Obsidian：手动双向链接 + Graph View。Mem.ai：AI 全自动关联。Reminds：AI 自动关联 + 全局/局部星图。</p><div class="sh">内容/流媒体类</div><p>Netflix \u201c因为你看过\u201d：关联原因透明化。YouTube 侧边栏：位置即时机。Spotify \u201c粉丝也喜欢\u201d：行为驱动。</p><div class="sh">对小米笔记的建议</div><p>已经做对的：全自动关联、关联原因标签、详情页底部位置。可以增强的：关联卡片加操作入口、关联强度可视化。</p>'
+  },
+  {
+    id: 3, title: "Obsidian双链与关系图谱竞品分析",
+    category: "竞品分析", date: "4/15 09:00", chars: 5000, color: "#a855f7",
+    keywords: ["Obsidian","双链","双向链接","关系图谱","Graph View","反向链接","块链接","标题链接","内容嵌入","节点","知识网络","关联","笔记"],
+    projects: ["关联笔记推荐"],
+    preview: "Obsidian 是笔记关联领域的标杆产品，以双向链接和关系图谱为核心功能，定义了笔记间关联的基本范式。",
+    content: `<div class="sh">产品概述</div><p>Obsidian 是笔记关联领域的标杆产品，以双向链接（Bidirectional Link）和关系图谱（Graph View）为核心功能。本地优先存储，Markdown 文件形式。</p><div class="sh">双向链接</div><p>用户输入 [[笔记名]] 手动建立链接。支持笔记级、标题级、块级三种链接粒度。反向链接面板自动聚合入链。</p><div class="sh">关系图谱</div><p>将每篇笔记视为节点，链接用线相连。支持全局图谱和局部图谱，可按文件夹/标签过滤、颜色分组。</p><div class="sh">对小米笔记的启示</div><p>可借鉴：反向链接→"被以下笔记引用"。我们的差异化：AI 自动关联、手机端优先、关联原因可追溯。</p>`
+  },
+  {
+    id: 4, title: "笔记详情页AI问答优化方案",
+    category: "需求文档", date: "4/16 11:00", chars: 4000, color: "#3b82f6",
+    keywords: ["详情页","AI问答","对话框","Chips","指令","修改","润色","选中段落","交互","场景判断","确认修改","直接插入"],
+    projects: ["AI笔记","详情页AI"],
+    preview: "详情页 AI 对话框交互优化，包括 Chips 动态展示、一句话指令修改、选中段落润色等能力。",
+    content: `<div class="sh">需求背景</div><p>当前详情页 AI 对话框交互体验不够流畅，用户不知道 AI 能做什么。需要通过 Chips 引导和场景判断优化体验。</p><div class="sh">三场景交互</div><p>场景一：需要确认的修改（Before/After 对比）。场景二：直接插入的修改（新增内容不动原文）。场景三：普通对话（回答展示在对话面板）。</p><div class="sh">Chips 动态展示</div><p>最多同时展示 4 个 chips，单行横滑。每个 chip 有独立的出现条件和排序权重。</p>`
+  },
+  {
+    id: 5, title: "语音输入笔记竞品参考",
+    category: "竞品分析", date: "4/16 09:15", chars: 4000, color: "#a855f7",
+    keywords: ["语音","录音","转写","AI整理","Apple Notes","Samsung","Otter","Granola","Plaud","说话人分离","端侧AI","无感录入"],
+    projects: ["语音笔记"],
+    preview: "语音笔记赛道已从录音转文字进化到录完即出成品笔记。头部产品的核心差异在转写后的 AI 整理质量。",
+    content: `<div class="sh">结论</div><p>语音笔记赛道已从"录音转文字"进化到"录完即出成品笔记"。核心差异：① 转写后的 AI 整理质量；② 是否需要打开 APP；③ 录音和笔记是否打通。</p><div class="sh">手机厂商方案</div><p>Apple Notes：录音笔记一体化，端侧 AI。Samsung：两个 APP 联动，说话人分离。华为：语音转文字输入为主。</p><div class="sh">第三方工具</div><p>Otter.ai：实时协作转写标杆。Granola：无感录入 + 人机协作。Plaud NotePin S：可穿戴 AI 录音笔。</p>`
+  },
+  {
+    id: 6, title: "笔记详情页AI预置Chips清单",
+    category: "交互方案", date: "4/17 10:00", chars: 3500, color: "#22c55e",
+    keywords: ["Chips","详情页","AI","总结要点","改简洁","续写","校对","翻译","提取待办","提取日程","思维导图","正式语气","权重","动态展示"],
+    projects: ["详情页AI"],
+    preview: "用户打开一篇笔记，对内容只有三种本质需求：理解它、改造它、带走它。所有 chips 从这三个方向推导。",
+    content: `<div class="sh">前置说明</div><p>Chip 只定义"做什么"，不绑定"走哪个交互流程"。场景判断由 AI 根据操作结果决定。</p><div class="sh">理解它</div><p>总结要点(P0)、创建思维导图(已完成)、列出关键数字(P1)、标注人物关系(P2)。</p><div class="sh">改造它</div><p>改简洁(P0)、续写补充(P0)、校对全文(P0)、改成正式语气(P0)、翻译(P1)。</p><div class="sh">带走它</div><p>分享摘要(P1)、生成邮件草稿(P2)、导出为长图(P2)。共 28 个 Chips。</p>`
+  },
+  {
+    id: 7, title: "AI笔记新架构PRD",
+    category: "需求文档", date: "4/10 16:00", chars: 8000, color: "#3b82f6",
+    keywords: ["PRD","架构","语音生成","AI问答","文件夹","思维导图","同步","关联笔记","MiClaw","Agent","Skill","模块"],
+    projects: ["AI笔记"],
+    preview: "AI 笔记新架构 9 个模块的完整 PRD，涵盖语音生成、AI 问答、智能文件夹、思维导图、云同步等。",
+    content: `<div class="sh">模块概览</div><p>F1 语音生成笔记、F2 AI 问答与润色、F3 智能文件夹、F4 思维导图、F5 云同步、F6 待办提取、F7 日程提取、F8 关联笔记推荐、F9 MiClaw 接入。</p><div class="sh">F2 AI 问答与润色</div><p>详情页底部 AI 对话框，支持自由提问和预置 Chips。三场景交互：确认修改、直接插入、普通对话。</p><div class="sh">F8 关联笔记推荐</div><p>三层计算策略：实体匹配→语义相似度→LLM 精细判断。详情页底部展示最多 3 条关联笔记。</p>`
+  },
+  {
+    id: 8, title: "笔记首页改造-P0场景梳理",
+    category: "交互方案", date: "4/14 14:00", chars: 3000, color: "#22c55e",
+    keywords: ["首页","MiClaw","写入","来源区分","智能文件夹","滚动更新","P0场景","Agent","卡片"],
+    projects: ["AI笔记","首页改造"],
+    preview: "首页承接 MiClaw 写入的 8 个 P0 场景，包括来源区分、智能文件夹、滚动更新等。",
+    content: `<div class="sh">P0 场景</div><p>1. MiClaw 写入笔记后首页实时更新。2. 来源区分：AI 生成 vs 用户手写用不同标签。3. 智能文件夹自动归类。4. 滚动更新：同类型内容追加到同一篇笔记。</p><div class="sh">来源区分</div><p>AI 生成的笔记显示"来自MiClaw"标签，用户手写的不显示。不同 Agent 来源用不同颜色区分。</p>`
+  },
+  {
+    id: 9, title: "AI关联笔记推荐-系统提示词",
+    category: "提示词", date: "4/20 16:00", chars: 2800, color: "#eab308",
+    keywords: ["提示词","关联笔记","推荐","LLM","维度","人物","项目","主题","时间","待办","置信度","reason","过滤","排序"],
+    projects: ["关联笔记推荐"],
+    preview: "AI 笔记 app 内，用户打开笔记详情页时，AI 分析当前笔记内容，从候选笔记中找出相关笔记。",
+    content: `<div class="sh">System Prompt</div><p>你是一个笔记关联推荐引擎。分析当前笔记内容，从候选笔记列表中找出最相关的笔记，并说明关联原因。</p><div class="sh">关联维度</div><p>5 个维度：人物关联(person)、项目关联(project)、主题关联(topic)、时间关联(timeline)、待办关联(todo)。</p><div class="sh">排序与过滤</div><p>按 confidence 降序。&lt; 0.6 不返回。最多 3 条。同维度最多 2 条。</p>`
+  },
+  {
+    id: 10, title: "音频解析失败场景设计",
+    category: "交互方案", date: "4/12 15:00", chars: 3000, color: "#22c55e",
+    keywords: ["音频","解析","失败","录音","转录","AI整理","写入","兜底","降级","错误","异常"],
+    projects: ["语音笔记"],
+    preview: "覆盖录音→转录→AI整理→写入笔记四个环节的失败场景和兜底策略。",
+    content: `<div class="sh">失败环节</div><p>环节一：录音采集失败（麦克风权限、存储空间）。环节二：转录失败（网络超时、模型异常）。环节三：AI 整理失败（LLM 超时、内容过长）。环节四：写入失败（数据库异常）。</p><div class="sh">兜底策略</div><p>每个环节独立降级：录音失败→提示重试；转录失败→保留原始音频；AI 整理失败→展示纯转写文本；写入失败→本地缓存重试。</p>`
+  },
+  {
+    id: 11, title: "笔记云同步策略与冲突处理方案",
+    category: "需求文档", date: "4/11 10:00", chars: 4000, color: "#3b82f6",
+    keywords: ["云同步","冲突","处理","网络","异常","兜底","数据","一致性","版本","合并"],
+    projects: ["云同步"],
+    preview: "云同步冲突处理的 6 条核心逻辑、笔记/文件夹冲突、网络异常兜底方案。",
+    content: `<div class="sh">核心逻辑</div><p>1. 最后写入优先（Last Write Wins）。2. 冲突时保留两个版本。3. 用户手动选择合并。4. 网络异常时本地优先。5. 文件夹冲突自动重命名。6. 删除操作不可逆。</p><div class="sh">网络异常兜底</div><p>断网时所有操作写入本地队列，恢复后按时间戳顺序同步。超过 7 天未同步的变更标记为"待确认"。</p>`
+  },
+  {
+    id: 12, title: "Chips动态排序-系统提示词",
+    category: "提示词", date: "4/19 11:00", chars: 1500, color: "#eab308",
+    keywords: ["Chips","排序","权重","动态","提示词","详情页","AI","条件","录音","MiClaw"],
+    projects: ["详情页AI"],
+    preview: "根据笔记内容特征动态计算 Chips 展示顺序的系统提示词。",
+    content: `<div class="sh">排序规则</div><p>基础权重 1-10 分。录音刚转写：整理成笔记 +3，去口语化 +2。来源为 MiClaw：校对全文 +2。用户手动输入：续写补充 +2。上次使用过的 chip：-3。</p>`
+  },
+  {
+    id: 13, title: "指令分流判断-系统提示词",
+    category: "提示词", date: "4/19 14:00", chars: 2000, color: "#eab308",
+    keywords: ["指令","分流","判断","提示词","场景","确认修改","直接插入","对话","AI"],
+    projects: ["详情页AI"],
+    preview: "判断用户输入的指令应该走哪个交互场景：确认修改、直接插入、还是普通对话。",
+    content: `<div class="sh">分流规则</div><p>确认修改：指令涉及删除、替换、修改原文内容。直接插入：指令要求生成新内容追加到笔记。普通对话：指令是提问、分析、不修改笔记。</p>`
+  },
+  {
+    id: 14, title: "AI关联笔记推荐-第三层LLM效果验证",
+    category: "测试方案", date: "4/21 09:00", chars: 3500, color: "#ef4444",
+    keywords: ["关联笔记","推荐","LLM","效果验证","测试","置信度","维度","reason","排序","过滤","边界"],
+    projects: ["关联笔记推荐"],
+    preview: "用真实笔记数据测试系统提示词的第三层 LLM 精细判断效果，检验关联维度识别、置信度打分。",
+    content: `<div class="sh">验证目标</div><p>用真实笔记数据测试第三层 LLM 精细判断效果，检验关联维度识别、reason 文案、置信度打分、排序过滤规则。</p><div class="sh">测试场景</div><p>场景1：需求文档找关联。场景2：交互方案找关联。场景3：短笔记边界。场景4：全弱关联边界。</p>`
+  },
+  {
+    id: 15, title: "Notion链接方式竞品分析",
+    category: "竞品分析", date: "4/14 16:00", chars: 2500, color: "#a855f7",
+    keywords: ["Notion","链接","Link to page","内联链接","超链接","反向链接","数据库","关联属性","AI"],
+    projects: ["关联笔记推荐"],
+    preview: "Notion 三种链接方式：Link to page、内联链接、超链接。AI 可自动填充数据库关联属性。",
+    content: `<div class="sh">三种链接方式</div><p>1. Link to page：独立块，占整行，支持反向链接。2. 内联链接：通过 + / @ / [[ 创建，可嵌入文字中。3. 超链接：绑定文字跳转，无反向链接。</p><div class="sh">AI 辅助</div><p>AI 可自动填充数据库关联属性，跨数据库搜索回答问题。</p>`
+  },
+  {
+    id: 16, title: "笔记详情页AI Chips-P0清单",
+    category: "交互方案", date: "4/18 09:00", chars: 2000, color: "#22c55e",
+    keywords: ["Chips","P0","详情页","总结要点","改简洁","续写补充","校对全文","改成正式语气","AI"],
+    projects: ["详情页AI"],
+    preview: "P0 共 5 个待开发 Chips：总结要点、改简洁、续写补充、校对全文、改成正式语气。",
+    content: '<div class="sh">P0 Chips</div><p>1. 总结要点：3-5 句话的摘要卡片。2. 改简洁：Before/After 确认卡片。3. 续写补充：新内容追加到末尾。4. 校对全文：逐条高亮修改。5. 改成正式语气：Before/After 确认卡片。</p>'
+  },
+  {
+    id: 17, title: "笔记首页筛选功能需求文档",
+    category: "需求文档", date: "4/13 11:00", chars: 1800, color: "#3b82f6",
+    keywords: ["首页","筛选","Agent","写入","来源","全部笔记","我创建的","AI创建的","MiClaw"],
+    projects: ["首页改造"],
+    preview: "Agent 高频写入后，用户需要快速区分哪些是我写的、哪些是 AI 写的，不被 AI 内容淹没。",
+    content: '<div class="sh">筛选选项</div><p>三个选项互斥：全部笔记（默认）、我创建的笔记、AI 创建的笔记。</p><div class="sh">交互规则</div><p>筛选状态在首页顶部展示，切换后列表实时刷新。退出首页后筛选状态重置为"全部"。</p>'
+  },
+  {
+    id: 18, title: "办公助手-笔记核心场景补充",
+    category: "交互方案", date: "4/15 14:00", chars: 2000, color: "#22c55e",
+    keywords: ["MiClaw","办公助手","创建笔记","待办","思维导图","编辑","搜索","Agent","语音指令"],
+    projects: ["AI笔记"],
+    preview: "MiClaw 办公助手的 5 个笔记核心场景：一句话创建笔记、生成待办、生成思维导图、一句话编辑、搜索笔记。",
+    content: '<div class="sh">核心场景</div><p>1. 一句话创建笔记：联网获取数据 + AI 生成报告 + 自动保存。2. 在笔记内生成待办：提取行动项 + 同步系统待办。3. 生成思维导图：分析层级结构 + 自动生成。4. 一句话指令编辑：语义定位段落 + diff 对比 + 确认写入。5. 搜索笔记：语义搜索 + 结果卡片。</p>'
+  },
+  {
+    id: 19, title: "总结要点-系统提示词",
+    category: "提示词", date: "4/19 15:00", chars: 1500, color: "#eab308",
+    keywords: ["总结","要点","摘要","提示词","Chips","详情页","AI","卡片"],
+    projects: ["详情页AI"],
+    preview: "用户点击总结要点 chip 后，对当前笔记全文进行要点提炼，输出简洁的摘要卡片。",
+    content: '<div class="sh">System Prompt</div><p>你是一个笔记要点总结助手。阅读用户提供的笔记内容，提炼出核心要点，输出一段简洁、完整的摘要。</p><div class="sh">输出规则</div><p>3-5 个要点，每个要点一句话。总字数不超过 200 字。保留关键数字和结论。</p>'
+  },
+  {
+    id: 20, title: "改简洁-系统提示词",
+    category: "提示词", date: "4/19 16:00", chars: 1500, color: "#eab308",
+    keywords: ["改简洁","精简","冗余","提示词","Chips","详情页","AI","Before/After"],
+    projects: ["详情页AI"],
+    preview: "用户点击改简洁 chip 后，对当前笔记全文进行精简，去掉冗余表述，保留核心信息。",
+    content: '<div class="sh">System Prompt</div><p>你是一个中文文本精简助手。把用户提供的笔记内容改得更简洁，去掉多余的话，保留所有关键信息。</p><div class="sh">输出规则</div><p>输出精简后的完整文本 + 精简统计（原文字数、精简后字数、精简比例）。Before/After 对比展示。</p>'
+  }
+];
+
+// ══════════════════════════════════════════════════════════════
+// PRE-COMPUTED LLM RESULTS A (新规则：阈值0.70)
+// ══════════════════════════════════════════════════════════════
+var LLM_RESULTS_A = {
+  1:  [{noteId:2,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.95},
+       {noteId:3,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.90},
+       {noteId:9,  dimension:"project", reason:"本篇的系统提示词定义", confidence:0.88}],
+  2:  [{noteId:1,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.95},
+       {noteId:3,  dimension:"project", reason:"都在调研笔记关联竞品", confidence:0.92},
+       {noteId:15, dimension:"topic",   reason:"都在分析笔记链接方式", confidence:0.78}],
+  3:  [{noteId:2,  dimension:"project", reason:"都在调研笔记关联竞品", confidence:0.92},
+       {noteId:1,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.88},
+       {noteId:15, dimension:"topic",   reason:"都在分析笔记链接方式", confidence:0.82}],
+  4:  [{noteId:6,  dimension:"project", reason:"同属详情页AI能力", confidence:0.92},
+       {noteId:16, dimension:"project", reason:"同属详情页AI能力", confidence:0.88},
+       {noteId:13, dimension:"topic",   reason:"都在设计指令场景判断", confidence:0.80}],
+  5:  [{noteId:10, dimension:"topic",   reason:"都在讨论语音录音处理", confidence:0.82}],
+  6:  [{noteId:16, dimension:"project", reason:"P0清单是本篇的子集", confidence:0.95},
+       {noteId:4,  dimension:"project", reason:"同属详情页AI能力", confidence:0.90},
+       {noteId:12, dimension:"topic",   reason:"都在设计Chips排序逻辑", confidence:0.85}],
+  7:  [{noteId:1,  dimension:"project", reason:"F8关联笔记的细化方案", confidence:0.85},
+       {noteId:4,  dimension:"project", reason:"F2 AI问答的细化方案", confidence:0.82},
+       {noteId:8,  dimension:"project", reason:"首页改造是PRD的落地", confidence:0.78}],
+  8:  [{noteId:17, dimension:"project", reason:"同属首页改造项目", confidence:0.90},
+       {noteId:7,  dimension:"project", reason:"PRD是首页改造的上层", confidence:0.78},
+       {noteId:18, dimension:"topic",   reason:"都在设计MiClaw写入场景", confidence:0.72}],
+  9:  [{noteId:1,  dimension:"project", reason:"本篇是关联推荐的提示词", confidence:0.92},
+       {noteId:14, dimension:"project", reason:"本篇的效果验证方案", confidence:0.90},
+       {noteId:2,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.75}],
+  10: [{noteId:5,  dimension:"topic",   reason:"都在讨论语音录音处理", confidence:0.82}],
+  11: [],
+  12: [{noteId:6,  dimension:"project", reason:"本篇是Chips清单的排序逻辑", confidence:0.88},
+       {noteId:16, dimension:"project", reason:"同属详情页Chips能力", confidence:0.82}],
+  13: [{noteId:4,  dimension:"project", reason:"本篇是三场景判断的提示词", confidence:0.92},
+       {noteId:6,  dimension:"topic",   reason:"都在设计详情页AI交互", confidence:0.70}],
+  14: [{noteId:9,  dimension:"project", reason:"本篇验证的就是该提示词", confidence:0.95},
+       {noteId:1,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.90},
+       {noteId:2,  dimension:"project", reason:"测试数据引用了该竞品调研", confidence:0.78}],
+  15: [{noteId:3,  dimension:"topic",   reason:"都在分析笔记链接方式", confidence:0.85},
+       {noteId:2,  dimension:"project", reason:"同属关联笔记推荐竞品调研", confidence:0.80}],
+  16: [{noteId:6,  dimension:"project", reason:"本篇是完整清单的P0子集", confidence:0.95},
+       {noteId:4,  dimension:"project", reason:"同属详情页AI能力", confidence:0.85},
+       {noteId:12, dimension:"topic",   reason:"都在设计Chips展示逻辑", confidence:0.75}],
+  17: [{noteId:8,  dimension:"project", reason:"同属首页改造项目", confidence:0.90},
+       {noteId:7,  dimension:"project", reason:"PRD是首页筛选的上层", confidence:0.70}],
+  18: [{noteId:8,  dimension:"topic",   reason:"都在设计MiClaw写入场景", confidence:0.75},
+       {noteId:7,  dimension:"project", reason:"同属AI笔记新架构", confidence:0.72}],
+  19: [{noteId:20, dimension:"topic",   reason:"都是详情页Chips的提示词", confidence:0.78},
+       {noteId:6,  dimension:"topic",   reason:"总结要点是Chips清单中的P0", confidence:0.72}],
+  20: [{noteId:19, dimension:"topic",   reason:"都是详情页Chips的提示词", confidence:0.78},
+       {noteId:6,  dimension:"topic",   reason:"改简洁是Chips清单中的P0", confidence:0.72}]
+};
+
+// 未推荐但有关联的候选（置信度 < 0.70 或受 3 条/同维度 2 条限制截断）
+var LLM_FILTERED_A = {
+  1:  [{noteId:4,  dimension:"topic",   reason:"都在设计详情页能力", confidence:0.65},
+       {noteId:7,  dimension:"project", reason:"PRD是上层文档", confidence:0.62},
+       {noteId:14, dimension:"project", reason:"本篇的效果验证", confidence:0.60},
+       {noteId:15, dimension:"topic",   reason:"都在分析笔记链接方式", confidence:0.55}],
+  2:  [{noteId:9,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.65},
+       {noteId:14, dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.58}],
+  3:  [{noteId:9,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.58}],
+  4:  [{noteId:12, dimension:"topic",   reason:"都在设计详情页AI交互", confidence:0.62},
+       {noteId:7,  dimension:"project", reason:"同属AI笔记新架构", confidence:0.58}],
+  5:  [{noteId:7,  dimension:"project", reason:"同属AI笔记新架构", confidence:0.62},
+       {noteId:18, dimension:"topic",   reason:"都涉及笔记创建场景", confidence:0.55}],
+  6:  [{noteId:19, dimension:"topic",   reason:"总结要点是Chips中的P0", confidence:0.62},
+       {noteId:20, dimension:"topic",   reason:"改简洁是Chips中的P0", confidence:0.58},
+       {noteId:13, dimension:"topic",   reason:"都在设计详情页AI交互", confidence:0.55}],
+  7:  [{noteId:11, dimension:"project", reason:"F5云同步的细化方案", confidence:0.60},
+       {noteId:6,  dimension:"project", reason:"F2的Chips清单", confidence:0.55},
+       {noteId:5,  dimension:"topic",   reason:"F1语音生成的竞品参考", confidence:0.52}],
+  8:  [],
+  9:  [{noteId:3,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.50}],
+  10: [{noteId:11, dimension:"topic",   reason:"都在设计异常兜底策略", confidence:0.58},
+       {noteId:7,  dimension:"project", reason:"同属AI笔记新架构", confidence:0.48}],
+  11: [{noteId:7,  dimension:"project", reason:"F5云同步的细化方案", confidence:0.60},
+       {noteId:10, dimension:"topic",   reason:"都涉及异常兜底策略", confidence:0.50}],
+  12: [{noteId:4,  dimension:"topic",   reason:"都在设计详情页AI交互", confidence:0.62},
+       {noteId:13, dimension:"topic",   reason:"都是详情页AI的提示词", confidence:0.55}],
+  13: [{noteId:12, dimension:"topic",   reason:"都是详情页AI的提示词", confidence:0.58},
+       {noteId:16, dimension:"topic",   reason:"同属详情页AI能力", confidence:0.48}],
+  14: [{noteId:3,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.48}],
+  15: [{noteId:1,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.62},
+       {noteId:9,  dimension:"project", reason:"同属关联笔记推荐项目", confidence:0.45}],
+  16: [{noteId:19, dimension:"topic",   reason:"总结要点在P0清单中", confidence:0.55},
+       {noteId:20, dimension:"topic",   reason:"改简洁在P0清单中", confidence:0.52},
+       {noteId:13, dimension:"topic",   reason:"同属详情页AI能力", confidence:0.48}],
+  17: [{noteId:18, dimension:"topic",   reason:"都涉及MiClaw写入场景", confidence:0.50}],
+  18: [{noteId:4,  dimension:"topic",   reason:"都涉及笔记编辑场景", confidence:0.55},
+       {noteId:17, dimension:"topic",   reason:"都涉及MiClaw写入", confidence:0.48}],
+  19: [{noteId:16, dimension:"topic",   reason:"总结要点在P0清单中", confidence:0.62},
+       {noteId:12, dimension:"topic",   reason:"都是详情页AI的提示词", confidence:0.48}],
+  20: [{noteId:16, dimension:"topic",   reason:"改简洁在P0清单中", confidence:0.62},
+       {noteId:12, dimension:"topic",   reason:"都是详情页AI的提示词", confidence:0.48}]
+};
+
+function computeRelated(noteId) {
+  var results = LLM_RESULTS[noteId];
+  if (!results) return [];
+  // Attach title from NOTES
+  return results.map(function(r) {
+    var note = NOTES.find(function(n) { return n.id === r.noteId; });
+    return {noteId: r.noteId, title: note ? note.title : "Unknown", dimension: r.dimension, reason: r.reason, confidence: r.confidence};
+  });
+}
+
+function getDisplayResults(allResults) {
+  var display = [];
+  var dimCount = {};
+  for (var i = 0; i < allResults.length; i++) {
+    var r = allResults[i];
+    if (r.confidence < 0.70) continue;
+    dimCount[r.dimension] = (dimCount[r.dimension] || 0) + 1;
+    if (dimCount[r.dimension] > 2) continue;
+    display.push(r);
+    if (display.length >= 3) break;
+  }
+  return display;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SVG ICONS
+// ══════════════════════════════════════════════════════════════
+const SVG_BACK = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>`;
+const SVG_SHARE = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
+const SVG_MORE = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg>`;
+const SVG_DOC = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>`;
+const SVG_CHEVRON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>`;
+const SVG_SPARK = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z" fill="#FF6A00"/></svg>`;
+const SVG_SEARCH = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+
+// ══════════════════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ══════════════════════════════════════════════════════════════
+const phone = document.getElementById('phone');
+const rightPanel = document.getElementById('rightPanel');
+
+function renderHome(filterCategory, restoreScroll) {
+  currentFilter = filterCategory;
+  rightPanel.classList.remove('visible');
+  rightPanel.innerHTML = '';
+
+  // Build dynamic category tabs from current NOTES
+  var cats = {};
+  for (var i = 0; i < NOTES.length; i++) {
+    var c = NOTES[i].category;
+    if (c) cats[c] = (cats[c] || 0) + 1;
+  }
+  var catNames = Object.keys(cats);
+
+  // Filter notes
+  var filteredNotes = [];
+  for (var i = 0; i < NOTES.length; i++) {
+    if (!filterCategory || NOTES[i].category === filterCategory) {
+      filteredNotes.push(NOTES[i]);
+    }
+  }
+
+  var listHTML = '';
+  for (var i = 0; i < filteredNotes.length; i++) {
+    var n = filteredNotes[i];
+    listHTML += '<div class="note-entry" onclick="renderDetail(' + n.id + ')">'
+      + '<div class="ne-title">' + n.title + '</div>'
+      + '<div class="ne-preview">' + n.preview + '</div>'
+      + '<div class="ne-date">' + n.date + '</div>'
+      + '</div>';
+  }
+
+  var SVG_CHECK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="9 12 11 14 15 10"/></svg>';
+  var SVG_DOTS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><circle cx="12" cy="6" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="18" r="1.2"/></svg>';
+  var SVG_FOLDER = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>';
+  var SVG_PLUS = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  var SVG_MIC_RED = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" fill="#E53935"/><path d="M19 10v2a7 7 0 01-14 0v-2" stroke="#E53935" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="#E53935" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SVG_PEN = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.8"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+  var SVG_Q = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+  var SVG_BATT = '<svg width="14" height="10" viewBox="0 0 28 16"><rect x="0" y="0" width="24" height="16" rx="3" fill="none" stroke="#333" stroke-width="2"/><rect x="24" y="4" width="4" height="8" rx="1" fill="#333"/><rect x="2" y="2" width="20" height="12" rx="1.5" fill="#333"/></svg>';
+
+  phone.innerHTML = ''
+    + '<div class="home-status">'
+    + '<span class="time">17:59</span>'
+    + '<div class="icons">' + SVG_BATT + ' <span style="font-weight:700;font-size:11px;margin-left:2px">100</span></div>'
+    + '</div>'
+    + '<div class="home-top">'
+    + '<div class="icon-btn">' + SVG_CHECK + '</div>'
+    + '<div class="icon-btn" onclick="renderSettings()">' + SVG_DOTS + '</div>'
+    + '</div>'
+    + '<div class="home-header"><h2>\u7b14\u8bb0</h2></div>'
+    + '<div class="home-search">' + SVG_Q + ' <span>\u641c\u7d22</span></div>'
+    + '<div class="folder-bar">'
+    + '<div class="folder-icon">' + SVG_FOLDER + '</div>'
+    + '<div class="folder-chip' + (!filterCategory ? ' active' : '') + '" onclick="renderHome()">\u5168\u90e8</div>'
+    + catNames.map(function(c) { return '<div class="folder-chip' + (filterCategory === c ? ' active' : '') + '" onclick="renderHome(\'' + c.replace(/'/g,"\\'") + '\')">' + c + '</div>'; }).join('')
+    + '</div>'
+    + '<div style="flex:1;overflow-y:auto">'
+    + '<div class="note-list">' + listHTML + '</div>'
+    + '</div>'
+    + '<div class="home-bottom-bar">'
+    + '<div class="btn-icon">' + SVG_PLUS + '</div>'
+    + '<div class="btn-mic">' + SVG_MIC_RED + '</div>'
+    + '<div class="btn-icon">' + SVG_PEN + '</div>'
+    + '</div>';
+
+  // Restore scroll position
+  if (restoreScroll) {
+    setTimeout(function() {
+      var scrollArea = phone.querySelector('[style*="overflow-y:auto"]');
+      if (scrollArea) scrollArea.scrollTop = homeScrollTop;
+    }, 0);
+  }
+}
+
+function renderDetail(noteId) {
+  // Save scroll position before leaving home
+  var scrollArea = phone.querySelector('[style*="overflow-y:auto"]');
+  if (scrollArea) homeScrollTop = scrollArea.scrollTop;
+
+  const note = NOTES.find(n => n.id === noteId);
+  if (!note) return;
+
+  const allResults = computeRelated(noteId);
+  const displayResults = getDisplayResults(allResults);
+
+  // Build related HTML
+  let relatedHTML = '';
+  if (!aiRelatedEnabled) {
+    // 未开启：G3风格，搜索图标+文字，居中
+    relatedHTML = '<div style="padding:16px 20px 100px;text-align:center" id="enableArea">'
+      + '<span onclick="enableRelated(' + noteId + ')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:1px solid #e0e0e0;border-radius:20px;font-size:13px;color:#999;cursor:pointer;transition:background 0.15s">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      + '发现关联笔记</span>'
+      + '</div>';
+  } else if (displayResults.length > 0) {
+    let cards = '';
+    for (const r of displayResults) {
+      cards += '<div class="related-card" onclick="renderDetail(' + r.noteId + ')">'
+        + '<div class="rc-icon">' + SVG_DOC + '</div>'
+        + '<div class="rc-title">' + r.title + '</div>'
+        + '<div class="rc-chevron">' + SVG_CHEVRON + '</div>'
+        + '</div>';
+    }
+    relatedHTML = '<div class="related-area"><div class="related-label">关联笔记：</div>' + cards + '</div>';
+  }
+
+  // Ensure bottom padding when no related content
+  if (!relatedHTML) {
+    relatedHTML = '<div style="height:80px"></div>';
+  }
+
+  phone.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;background:#fff;border-radius:44px;overflow:hidden">'
+    + '<div class="ph-sb"><span class="time">2:36</span><div class="right">\u1390\u1417 100</div></div>'
+    + '<div class="ph-nav">'
+    + '<div class="back" onclick="renderHome(currentFilter, true)">' + SVG_BACK + '</div>'
+    + '<div class="spacer"></div>'
+    + '<div class="act">' + SVG_SHARE + '</div>'
+    + '<div class="act">' + SVG_MORE + '</div>'
+    + '</div>'
+    + '<div class="ph-scroll" style="height:auto;flex:1;overflow-y:auto;padding:0">'
+    + '<div class="note-title">' + note.title + '</div>'
+    + '<div class="note-meta"><span>' + note.date + '</span> \u00b7 <span>' + note.chars + '\u5b57</span> \u00b7 <span>' + note.category + '</span></div>'
+    + '<div class="note-content">' + note.content + '</div>'
+    + relatedHTML
+    + '</div>'
+    + '<div class="ph-bottom" style="position:absolute;bottom:0;left:0;right:0"><div class="ai-pill">' + SVG_SPARK + '<span class="pill-text">\u603b\u7ed3\u3001\u6da6\u8272\u3001\u5bf9\u8bdd...</span></div></div>'
+    + '</div>';
+
+  // Right panel
+  renderRightPanel(note, allResults, displayResults);
+}
+
+function renderRightPanel(note, allResults, displayResults) {
+  const dimClass = function(d) { return d === 'project' ? 'dim-project' : d === 'person' ? 'dim-person' : 'dim-topic'; };
+  const confColor = function(c) { return c >= 0.8 ? '#22c55e' : c >= 0.6 ? '#eab308' : '#ef4444'; };
+
+  let jsonStr;
+  if (displayResults.length > 0) {
+    jsonStr = JSON.stringify(displayResults.map(function(r) {
+      return { note_id: r.noteId, title: r.title, dimension: r.dimension, reason: r.reason, confidence: r.confidence };
+    }), null, 2);
+    jsonStr = jsonStr.replace(/"(\w+)":/g, '<span style="color:#7dd3fc">"$1"</span>:')
+      .replace(/: "([^"]+)"/g, ': <span style="color:#86efac">"$1"</span>')
+      .replace(/: (0\.\d+)/g, ': <span style="color:#fbbf24">$1</span>')
+      .replace(/: (\d+),/g, ': <span style="color:#fbbf24">$1</span>,');
+  } else {
+    jsonStr = '<span style="color:#5a5a72">// 无满足条件的关联笔记\n[]</span>';
+  }
+
+  let resultsHTML = '';
+  if (displayResults.length > 0) {
+    for (const r of displayResults) {
+      resultsHTML += '<div class="rp-row" style="flex-wrap:wrap">'
+        + '<span class="dim ' + dimClass(r.dimension) + '">' + r.dimension + '</span>'
+        + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + r.title + '</span>'
+        + '<div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:' + (r.confidence*100) + '%;background:' + confColor(r.confidence) + '"></div></div>'
+        + '<span class="conf-val" style="color:' + confColor(r.confidence) + '">' + r.confidence.toFixed(2) + '</span></div>'
+        + (r.reason ? '<div style="width:100%;font-size:11px;color:#b0b0c8;margin-top:3px;padding-left:2px;line-height:1.4">' + r.reason + '</div>' : '')
+        + '</div>';
+    }
+  } else {
+    resultsHTML = '<div class="rp-empty">∅ 无满足条件的关联笔记</div>';
+  }
+
+  const filtered = LLM_FILTERED[note.id] || [];
+  let filteredHTML = '';
+  if (filtered.length > 0) {
+    let rows = '';
+    for (const r of filtered) {
+      var fn = NOTES.find(function(n) { return n.id === r.noteId; });
+      var ftitle = fn ? fn.title : 'Unknown';
+      rows += '<div class="rp-row" style="opacity:0.6;flex-wrap:wrap">'
+        + '<span style="color:#ef4444;font-size:10px;font-weight:600">\u2715</span>'
+        + '<span class="dim ' + dimClass(r.dimension) + '">' + r.dimension + '</span>'
+        + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + ftitle + '</span>'
+        + '<div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:' + (r.confidence*100) + '%;background:#ef4444"></div></div>'
+        + '<span class="conf-val" style="color:#ef4444">' + r.confidence.toFixed(2) + '</span></div>'
+        + (r.reason ? '<div style="width:100%;font-size:11px;color:#a0a0b8;margin-top:3px;padding-left:2px;line-height:1.4">' + r.reason + '</div>' : '')
+        + '</div>';
+    }
+    filteredHTML = '<div class="rp-card"><div class="rp-title">\u672a\u63a8\u8350\u4f46\u6709\u5173\u8054</div>' + rows + '</div>';
+  }
+
+  rightPanel.innerHTML = '<div class="rp-card">'
+    + '<div class="rp-title">当前笔记 <span class="badge">' + note.chars + '字 · ' + note.category + '</span></div>'
+    + '<div style="font-size:13px;color:#e8e8f0;font-weight:600">' + note.title + '</div>'
+    + '</div>'
+    + '<div class="rp-card"><div class="rp-title">LLM 输出 <span class="badge">第三层</span></div>'
+    + '<div class="rp-json">' + jsonStr + '</div></div>'
+    + '<div class="rp-card"><div class="rp-title">推荐结果（置信度 ≥ 0.70）</div>' + resultsHTML + '</div>'
+    + filteredHTML;
+
+  rightPanel.classList.add('visible');
+}
+
+// Settings Page
+function renderSettings() {
+  rightPanel.classList.remove('visible');
+  rightPanel.innerHTML = '';
+
+  var SVG_BACK2 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>';
+  var SVG_BATT2 = '<svg width="14" height="10" viewBox="0 0 28 16"><rect x="0" y="0" width="24" height="16" rx="3" fill="none" stroke="#333" stroke-width="2"/><rect x="24" y="4" width="4" height="8" rx="1" fill="#333"/><rect x="2" y="2" width="20" height="12" rx="1.5" fill="#333"/></svg>';
+
+  phone.innerHTML = '<div class="settings-page">'
+    + '<div class="ph-sb"><span class="time">14:42</span><div class="right">' + SVG_BATT2 + ' <span style="font-weight:700;font-size:11px;margin-left:2px">87</span></div></div>'
+    + '<div class="ph-nav">'
+    + '<div class="back" onclick="renderHome(currentFilter)">' + SVG_BACK2 + '</div>'
+    + '<div style="flex:1"></div>'
+    + '</div>'
+    + '<div class="settings-scroll">'
+    + '<div style="padding:4px 24px 16px"><h2 style="font-size:26px;font-weight:700;color:#1a1a1a">设置</h2></div>'
+    + '<div class="settings-group-title">AI 功能设置</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item">'
+    + '<div style="flex:1"><div class="si-label">智能通话笔记</div><div class="si-desc">通话录音结束后自动识别关键内容，生成结构化笔记，减少手动整理</div></div>'
+    + '<div class="si-toggle off"></div>'
+    + '</div>'
+    + '<div class="settings-item">'
+    + '<div style="flex:1"><div class="si-label">关联笔记推荐</div><div class="si-desc">分析笔记内容，自动推荐相关笔记</div></div>'
+    + '<div class="si-toggle ' + (aiRelatedEnabled ? 'on' : 'off') + '" onclick="toggleRelated(this)"></div>'
+    + '</div>'
+    + '</div>'
+    + '<div class="settings-group-title">云服务</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div style="flex:1"><div class="si-label">小米云同步</div><div class="si-desc">开启后数据将自动同步</div></div><div style="color:#ccc">›</div></div>'
+    + '<div class="settings-item"><div style="flex:1"><div class="si-label">云端回收站</div><div class="si-desc">查看和恢复云端已删除的笔记</div></div><div style="color:#ccc">›</div></div>'
+    + '</div>'
+    + '<div class="settings-group-title">提醒</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div style="flex:1"><div class="si-label">强提醒</div><div class="si-desc">持续响铃且静音和勿扰状态下仍有效</div></div><div class="si-toggle off"></div></div>'
+    + '</div>'
+    + '<div class="settings-group-title">版本与备案</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div class="si-label">版本信息</div><div style="color:#ccc">›</div></div>'
+    + '<div class="settings-item"><div class="si-label">备案信息</div><div style="color:#ccc">›</div></div>'
+    + '</div>'
+    + '<div class="settings-group-title">其他设置</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div class="si-label">隐私设置</div><div style="color:#ccc">›</div></div>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function toggleRelated(el) {
+  aiRelatedEnabled = !aiRelatedEnabled;
+  if (aiRelatedEnabled) {
+    el.className = 'si-toggle on';
+  } else {
+    el.className = 'si-toggle off';
+  }
+}
+
+// Enable AI Related Notes
+function enableRelated(noteId) {
+  // 原地替换为加载态（G3风格居中）
+  var area = document.getElementById('enableArea');
+  if (area) {
+    area.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:1px solid #e0e0e0;border-radius:20px;font-size:13px;color:#999">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"/></svg>'
+      + '正在查找关联笔记...</span>';
+  }
+  setTimeout(function() {
+    aiRelatedEnabled = true;
+    // 构建关联结果
+    var allResults = computeRelated(noteId);
+    var displayResults = getDisplayResults(allResults);
+    if (area) {
+      if (displayResults.length > 0) {
+        var cards = '<div class="related-area"><div class="related-label">关联笔记：</div>';
+        for (var i = 0; i < displayResults.length; i++) {
+          var r = displayResults[i];
+          cards += '<div class="related-card" onclick="renderDetail(' + r.noteId + ')">'
+            + '<div class="rc-icon">' + SVG_DOC + '</div>'
+            + '<div class="rc-title">' + r.title + '</div>'
+            + '<div class="rc-chevron">' + SVG_CHEVRON + '</div>'
+            + '</div>';
+        }
+        cards += '</div>';
+        area.outerHTML = cards;
+      } else {
+        area.outerHTML = '';
+      }
+    }
+    // 更新右侧面板
+    var note = NOTES.find(function(n) { return n.id === noteId; });
+    if (note) renderRightPanel(note, allResults, displayResults);
+  }, 1500);
+}
+
+// Init
+switchDataset(0);
+</script>
+</body>
+</html>
