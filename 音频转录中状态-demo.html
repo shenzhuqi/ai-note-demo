@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音频转录中状态设计</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; background: #f5f5f5; padding: 40px 20px; color: #1a1a1a; }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 40px; }
+  .states-row { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .state-item { flex: 1; min-width: 260px; max-width: 300px; text-align: center; }
+  .state-label { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #333; }
+
+  /* 音频卡片 */
+  .audio-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: left;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .play-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .play-btn.default { border: 1.5px solid #ccc; background: #fff; }
+  .play-btn.active { border: none; background: #ff4b2b; }
+  .play-btn svg { width: 14px; height: 14px; }
+  .time { font-size: 12px; color: #999; flex-shrink: 0; min-width: 34px; }
+  .waveform { flex: 1; height: 24px; display: flex; align-items: center; gap: 1.5px; }
+  .waveform .bar { width: 2px; background: #d0d0d0; border-radius: 1px; }
+  .waveform.active .bar { background: #e0e0e0; }
+
+  /* 转录中特有样式 */
+  .transcribe-status {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+  }
+  .transcribe-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .transcribe-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+  }
+  .transcribe-label .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #ff6b35;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+  .transcribe-percent {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ff6b35;
+  }
+  .progress-track {
+    width: 100%;
+    height: 4px;
+    background: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #ff6b35, #ff4b2b);
+    transition: width 0.3s ease;
+  }
+  .transcribe-eta {
+    font-size: 11px;
+    color: #bbb;
+  }
+
+  /* 解析中 */
+  .analyze-status {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #999;
+  }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 1.5px solid #e0e0e0;
+    border-top-color: #999;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 解析完成 */
+  .result-text {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #333;
+  }
+  .result-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #ff6b35;
+  }
+
+  .state-note {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #bbb;
+  }
+
+  /* 流程图 */
+  .flow-section {
+    margin-top: 48px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .flow-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  .flow-steps {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    text-align: center;
+    flex: 0 0 auto;
+    width: 130px;
+  }
+  .flow-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .flow-circle.gray { background: #f5f5f5; }
+  .flow-circle.orange { background: #fff3ed; }
+  .flow-circle.blue { background: #eef4ff; }
+  .flow-circle.green { background: #edfcf2; }
+  .flow-step-name { font-size: 13px; font-weight: 500; color: #333; margin-bottom: 4px; }
+  .flow-step-desc { font-size: 11px; color: #999; line-height: 1.4; }
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    padding-top: 14px;
+    color: #ccc;
+    font-size: 18px;
+    flex: 0 0 30px;
+    justify-content: center;
+  }
+
+  /* 转录中详细设计 */
+  .detail-section {
+    margin-top: 32px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .detail-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #333;
+  }
+  .detail-card {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .detail-card:last-child { margin-bottom: 0; }
+  .detail-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .detail-card-title .tag {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #fff;
+  }
+  .tag.orange { background: #ff6b35; }
+  .tag.gray { background: #999; }
+  .tag.red { background: #e53935; }
+  .detail-card p {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 4px;
+  }
+
+  /* 大卡片演示 */
+  .demo-section {
+    margin-top: 32px;
+    text-align: center;
+  }
+  .demo-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #333;
+  }
+  .demo-card {
+    display: inline-block;
+    width: 340px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    text-align: left;
+  }
+  .demo-card .player-row { margin-bottom: 0; }
+  .demo-card .transcribe-status { margin-top: 16px; padding-top: 14px; }
+  .demo-card .transcribe-tip {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #fef9f6;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #cc5522;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .demo-card .transcribe-tip .icon { flex-shrink: 0; margin-top: 1px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>笔记内音频卡片 · 状态设计</h1>
+  <p class="subtitle">新增"转录中"状态，区别于"解析中"，给用户明确的进度感知</p>
+
+  <!-- 四种状态对比 -->
+  <div class="states-row">
+    <!-- 未解析 -->
+    <div class="state-item">
+      <div class="state-label">未解析</div>
+      <div class="audio-card">
+        <div class="player-row">
+          <div class="play-btn default">
+            <svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg>
+          </div>
+          <span class="time">00:07</span>
+          <div class="waveform" id="wave1"></div>
+        </div>
+      </div>
+      <div class="state-note">可播放，无AI处理</div>
+    </div>
+
+    <!-- 转录中 -->
+    <div class="state-item">
+      <div class="state-label" style="color:#ff6b35;">转录中 ✦</div>
+      <div class="audio-card">
+        <div class="player-row">
+          <div class="play-btn default">
+            <svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg>
+          </div>
+          <span class="time">05:32</span>
+          <div class="waveform" id="wave2"></div>
+        </div>
+        <div class="transcribe-status">
+          <div class="transcribe-header">
+            <div class="transcribe-label">
+              <span class="dot"></span>
+              AI转录中
+            </div>
+            <span class="transcribe-percent">32%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 32%;"></div>
+          </div>
+          <div class="transcribe-eta">预计还需约3分钟</div>
+        </div>
+      </div>
+      <div class="state-note">可播放原始音频，进度实时更新</div>
+    </div>
+
+    <!-- 解析中 -->
+    <div class="state-item">
+      <div class="state-label">解析中</div>
+      <div class="audio-card">
+        <div class="player-row">
+          <div class="play-btn default">
+            <svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg>
+          </div>
+          <span class="time">00:07</span>
+          <div class="waveform" id="wave3"></div>
+        </div>
+        <div class="analyze-status">
+          <div class="spinner"></div>
+          AI分析语音中...
+        </div>
+      </div>
+      <div class="state-note">转录完成，正在生成总结</div>
+    </div>
+
+    <!-- 解析完成 -->
+    <div class="state-item">
+      <div class="state-label">解析完成</div>
+      <div class="audio-card">
+        <div class="player-row">
+          <div class="play-btn active">
+            <svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#fff"/></svg>
+          </div>
+          <span class="time">00:07</span>
+          <div class="waveform active" id="wave4"></div>
+        </div>
+        <div class="result-text">确立设计部独立敏捷交付新流程，规定全量设计需求需由设计师统一录入管理平台。</div>
+        <div class="result-hint">一句话总结，3行左右</div>
+      </div>
+      <div class="state-note">展示AI总结内容</div>
+    </div>
+  </div>
+
+  <!-- 状态流转 -->
+  <div class="flow-section">
+    <div class="flow-title">状态流转</div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-circle gray">🎙️</div>
+        <div class="flow-step-name">未解析</div>
+        <div class="flow-step-desc">仅音频可播放<br>用户手动触发解析</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-circle orange">📝</div>
+        <div class="flow-step-name">转录中</div>
+        <div class="flow-step-desc">语音转文字<br>长录音约3~5分钟<br>展示进度条+预估时间</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-circle blue">🤖</div>
+        <div class="flow-step-name">解析中</div>
+        <div class="flow-step-desc">AI总结提炼<br>通常1分钟以内<br>转圈loading即可</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-circle green">✅</div>
+        <div class="flow-step-name">解析完成</div>
+        <div class="flow-step-desc">展示AI总结<br>一句话摘要</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 转录中放大演示 -->
+  <div class="demo-section">
+    <div class="demo-title">转录中状态 · 放大演示</div>
+    <div class="demo-card">
+      <div class="player-row">
+        <div class="play-btn default">
+          <svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg>
+        </div>
+        <span class="time">12:45</span>
+        <div class="waveform" id="wave5"></div>
+      </div>
+      <div class="transcribe-status">
+        <div class="transcribe-header">
+          <div class="transcribe-label">
+            <span class="dot"></span>
+            AI转录中
+          </div>
+          <span class="transcribe-percent" id="demoPercent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="demoFill" style="width: 0%;"></div>
+        </div>
+        <div class="transcribe-eta" id="demoEta">预计还需约5分钟</div>
+      </div>
+      <div class="transcribe-tip">
+        <span class="icon">💡</span>
+        <span>转录期间可正常播放原始录音，完成后将自动进入AI解析</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设计细节 -->
+  <div class="detail-section">
+    <div class="detail-title">转录中状态 · 设计要点</div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">
+        进度反馈 <span class="tag orange">核心</span>
+      </div>
+      <p>• 展示百分比进度条（橙色渐变），区别于解析中的转圈loading</p>
+      <p>• 下方显示预估剩余时间，每30秒刷新一次</p>
+      <p>• 进度条左侧有呼吸灯小圆点，表示任务进行中</p>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">
+        可操作性 <span class="tag orange">核心</span>
+      </div>
+      <p>• 转录期间音频可正常播放，不阻塞用户操作</p>
+      <p>• 用户可离开当前页面，转录在后台继续</p>
+      <p>• 转录完成后自动进入"解析中"，无需用户二次触发</p>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">
+        离开页面后 <span class="tag gray">补充</span>
+      </div>
+      <p>• 笔记列表中该条目显示"转录中"角标</p>
+      <p>• 全部完成（转录+解析）后推送通知"XX录音解析完成"</p>
+      <p>• 重新进入页面时恢复当前进度展示</p>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">
+        异常处理 <span class="tag red">兜底</span>
+      </div>
+      <p>• 转录失败：进度条消失，显示"转录失败，点击重试"</p>
+      <p>• 超时（超过预估2倍时间）：文案变为"转录时间较长，请耐心等待"</p>
+      <p>• 网络断开：暂停进度，提示"网络已断开，恢复后将继续转录"</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// 生成波形条
+function generateWave(id, count) {
+  const el = document.getElementById(id);
+  for (let i = 0; i < count; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    const h = Math.random() * 16 + 4;
+    bar.style.height = h + 'px';
+    el.appendChild(bar);
+  }
+}
+generateWave('wave1', 50);
+generateWave('wave2', 50);
+generateWave('wave3', 50);
+generateWave('wave4', 50);
+generateWave('wave5', 60);
+
+// 演示进度动画
+let progress = 0;
+const fill = document.getElementById('demoFill');
+const percent = document.getElementById('demoPercent');
+const eta = document.getElementById('demoEta');
+
+setInterval(() => {
+  if (progress < 95) {
+    progress += Math.random() * 2 + 0.5;
+    if (progress > 95) progress = 95;
+    fill.style.width = progress + '%';
+    percent.textContent = Math.round(progress) + '%';
+    const remaining = Math.max(1, Math.round((100 - progress) / 100 * 5));
+    eta.textContent = '预计还需约' + remaining + '分钟';
+  }
+}, 800);
+</script>
+</body>
+</html>

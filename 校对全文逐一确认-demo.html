@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校对全文 · 逐一确认弹窗 Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC",sans-serif;background:#f0f0f5;color:#1a1a1a;display:flex;justify-content:center;padding:32px 16px 60px}
+h1{font-size:16px;font-weight:600;text-align:center;margin-bottom:4px}
+p.sub{font-size:12px;color:#999;text-align:center;margin-bottom:24px}
+.wrap{display:flex;flex-direction:column;align-items:center}
+/* Phone */
+.phone{width:375px;height:780px;background:#1a1a1a;border-radius:44px;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;overflow:hidden}
+.screen{width:100%;height:100%;background:#fff;border-radius:34px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+/* Status */
+.sb{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;font-size:14px;font-weight:600}
+/* Nav */
+.nav{padding:2px 16px 8px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.nav .back{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.nav .title{flex:1;font-size:16px;font-weight:600}
+.nav .acts{display:flex;gap:10px;align-items:center}
+.counter{font-size:12px;color:#FF6A00;background:rgba(255,106,0,0.08);padding:3px 8px;border-radius:100px}
+/* Note body */
+.note{flex:1;overflow-y:auto;padding:0 16px 120px;font-size:14px;line-height:1.85;color:#444}
+.note .meta{font-size:11px;color:#bbb;margin-bottom:10px}
+.note .sh{font-size:14px;font-weight:600;color:#1a1a1a;margin:12px 0 4px}
+/* Highlight styles */
+.hl{background:rgba(255,106,0,0.12);border-bottom:2px solid #FF6A00;padding:0 2px;border-radius:2px;cursor:pointer;transition:background 0.2s}
+.hl.active{background:rgba(255,106,0,0.25)}
+.hl.fixed{background:rgba(34,197,94,0.1);border-bottom:2px solid #22c55e;text-decoration:none}
+.hl.skipped{background:transparent;border-bottom:2px dashed #ddd;opacity:0.6}
+/* Bottom panel */
+.panel{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.08);z-index:10;transition:transform 0.3s ease}
+.panel-handle{display:flex;justify-content:center;padding:8px 0 4px}
+.panel-handle div{width:36px;height:4px;border-radius:2px;background:#ddd}
+/* Panel header */
+.ph{padding:4px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.ph .left{display:flex;align-items:center;gap:6px}
+.ph .left .icon{font-size:16px}
+.ph .left .t{font-size:15px;font-weight:600}
+.ph .right{display:flex;gap:8px}
+.ph .right button{font-size:12px;border:none;border-radius:100px;padding:5px 12px;cursor:pointer;font-family:inherit}
+.btn-all-ok{background:#FF6A00;color:#fff}
+.btn-all-cancel{background:#f0f0f0;color:#666}
+/* Card area */
+.card-area{padding:0 16px 8px;min-height:100px}
+.card{background:#f7f7fa;border-radius:14px;padding:14px 16px;border:1px solid #eee}
+.card .type-tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;margin-bottom:8px}
+.tag-spelling{color:#ef4444;background:rgba(239,68,68,0.08)}
+.tag-grammar{color:#8b5cf6;background:rgba(139,92,246,0.08)}
+.tag-punctuation{color:#f59e0b;background:rgba(245,158,11,0.08)}
+.tag-wording{color:#3b82f6;background:rgba(59,130,246,0.08)}
+.tag-structure{color:#10b981;background:rgba(16,185,129,0.08)}
+.card .before{font-size:13px;color:#ef4444;text-decoration:line-through;line-height:1.6;margin-bottom:4px}
+.card .after{font-size:14px;color:#1a1a1a;line-height:1.6;margin-bottom:8px}
+.card .reason{font-size:12px;color:#888;line-height:1.5;padding:8px 0 0;border-top:1px solid #eee}
+/* Nav arrows + actions */
+.card-nav{padding:8px 16px 0;display:flex;align-items:center;justify-content:space-between}
+.card-nav .arrows{display:flex;gap:8px}
+.card-nav .arrows button{width:36px;height:36px;border-radius:50%;border:1px solid #e5e5e5;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.card-nav .arrows button:disabled{opacity:0.3;cursor:default}
+.card-nav .arrows button:hover:not(:disabled){background:#f7f7fa}
+.card-nav .actions{display:flex;gap:8px}
+.card-nav .actions button{font-size:13px;border:none;border-radius:100px;padding:8px 18px;cursor:pointer;font-family:inherit;font-weight:500}
+.btn-skip{background:#f0f0f0;color:#666}
+.btn-fix{background:#FF6A00;color:#fff}
+/* Progress */
+.progress-bar{padding:8px 16px 20px;display:flex;align-items:center;gap:8px}
+.progress-bar .bar{flex:1;height:3px;background:#f0f0f5;border-radius:2px;overflow:hidden}
+.progress-bar .bar .fill{height:100%;background:#FF6A00;border-radius:2px;transition:width 0.3s}
+.progress-bar .text{font-size:11px;color:#bbb;flex-shrink:0}
+/* Done state */
+.done-card{text-align:center;padding:20px 16px}
+.done-card .icon{font-size:32px;margin-bottom:8px}
+.done-card .t{font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+.done-card .s{font-size:12px;color:#999}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>校对全文 · 逐一确认弹窗</h1>
+<p class="sub">可交互 · 点击修正/跳过/上一个/下一个</p>
+<div class="phone">
+<div class="screen">
+<div class="sb"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+<div class="acts"><div class="counter" id="counter">校对中 1/4</div></div>
+</div>
+
+<!-- Note content with highlights -->
+<div class="note" id="note">
+<div class="meta">9/26 10:29 | 398字 | 来自MiClaw</div>
+<div class="sh">🎯 会议目的：</div>
+<div>宣贯设计部在AI转敏捷交付后的新流程，明确设计主导需求的交付机制、时间节点及跨部门协作规则，确保设计需求不被遗漏并顺利纳入敏捷迭代。</div>
+<div class="sh">🤝 会议共识：</div>
+<div style="margin-bottom:4px">1. 设计部独立建立敏捷需求交付流程，与产品线并行但分工清晰，避免设计需求被遗漏。</div>
+<div style="margin-bottom:4px">2. 所有设计发起的需求需通过<span class="hl" id="hl-0">"一句话需求清单"登记,并按新流程推进</span>。</div>
+<div style="margin-bottom:4px">3. 需求管理平台为唯一入口，所有设计需求由设计同学自行录入。</div>
+<div style="margin-bottom:4px">4. <span class="hl" id="hl-1">铁三角以共识</span>且资源明确的需求可直接登记，无需重复 LCS 报备。</div>
+<div style="margin-bottom:4px">5. 设计走查纳入 DoD 标准，未通过走查的需求不可上线。</div>
+<div class="sh">📋 待办事项：</div>
+<div style="margin-bottom:4px">• <span class="hl" id="hl-2">张三负责跟进后续事项，他说他会在下周一前把方案发给他确认</span>。</div>
+<div style="margin-bottom:4px">• 李响本周内确认AI推荐tab的排序算法。</div>
+<div>• <span class="hl" id="hl-3">大约有10个左右</span>的设计需求需要在本周内完成登记。</div>
+</div>
+
+<!-- Bottom proofread panel -->
+<div class="panel" id="panel">
+<div class="panel-handle"><div></div></div>
+<div class="ph">
+<div class="left"><span class="icon">📝</span><span class="t">校对结果</span></div>
+<div class="right">
+<button class="btn-all-cancel" onclick="allCancel()">全部取消</button>
+<button class="btn-all-ok" onclick="allConfirm()">全部确认</button>
+</div>
+</div>
+<div class="card-area" id="card-area">
+<!-- Card rendered by JS -->
+</div>
+<div class="card-nav">
+<div class="arrows">
+<button id="btn-prev" onclick="goPrev()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+<button id="btn-next" onclick="goNext()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+</div>
+<div class="actions">
+<button class="btn-skip" onclick="skipCurrent()">跳过</button>
+<button class="btn-fix" onclick="fixCurrent()">修正</button>
+</div>
+</div>
+<div class="progress-bar">
+<div class="bar"><div class="fill" id="prog-fill" style="width:0%"></div></div>
+<div class="text" id="prog-text">0/4 已处理</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+const issues = [
+  {
+    id: 0,
+    type: 'punctuation',
+    typeLabel: '标点',
+    tagClass: 'tag-punctuation',
+    original: '"一句话需求清单"登记,并按新流程推进',
+    corrected: '"一句话需求清单"登记，并按新流程推进',
+    reason: '中文语境下应使用中文逗号「，」，不是英文逗号「,」',
+    status: 'pending' // pending | fixed | skipped
+  },
+  {
+    id: 1,
+    type: 'spelling',
+    typeLabel: '拼写',
+    tagClass: 'tag-spelling',
+    original: '铁三角以共识',
+    corrected: '铁三角已共识',
+    reason: '"以"应为"已"，表示"已经达成共识"',
+    status: 'pending'
+  },
+  {
+    id: 2,
+    type: 'structure',
+    typeLabel: '句子结构',
+    tagClass: 'tag-structure',
+    original: '张三负责跟进后续事项，他说他会在下周一前把方案发给他确认',
+    corrected: '张三负责跟进后续事项，他说会在下周一前把方案发给李响确认',
+    reason: '连续三个"他"指代不清，第三个"他"应明确是谁',
+    status: 'pending'
+  },
+  {
+    id: 3,
+    type: 'grammar',
+    typeLabel: '语法',
+    tagClass: 'tag-grammar',
+    original: '大约有10个左右',
+    corrected: '大约有10个',
+    reason: '"大约"和"左右"重复，保留一个即可',
+    status: 'pending'
+  }
+];
+
+let currentIdx = 0;
+
+function renderCard() {
+  const area = document.getElementById('card-area');
+  const pending = issues.filter(i => i.status === 'pending');
+
+  if (pending.length === 0) {
+    const fixed = issues.filter(i => i.status === 'fixed').length;
+    const skipped = issues.filter(i => i.status === 'skipped').length;
+    area.innerHTML = `<div class="done-card"><div class="icon">✅</div><div class="t">校对完成</div><div class="s">修正 ${fixed} 处 · 跳过 ${skipped} 处</div></div>`;
+    document.getElementById('counter').textContent = '校对完成';
+    document.querySelector('.card-nav').style.display = 'none';
+    return;
+  }
+
+  const issue = issues[currentIdx];
+  if (!issue || issue.status !== 'pending') {
+    // find next pending
+    const nextPending = issues.findIndex((it, i) => i >= currentIdx && it.status === 'pending');
+    if (nextPending >= 0) { currentIdx = nextPending; }
+    else {
+      const firstPending = issues.findIndex(it => it.status === 'pending');
+      if (firstPending >= 0) currentIdx = firstPending;
+      else { renderCard(); return; }
+    }
+  }
+
+  const it = issues[currentIdx];
+  area.innerHTML = `
+    <div class="card">
+      <div class="type-tag ${it.tagClass}">${it.typeLabel}</div>
+      <div class="before">${it.original}</div>
+      <div class="after">${it.corrected}</div>
+      <div class="reason">💡 ${it.reason}</div>
+    </div>`;
+
+  // Update highlights
+  issues.forEach((item, i) => {
+    const el = document.getElementById('hl-' + i);
+    if (!el) return;
+    el.className = 'hl';
+    if (item.status === 'fixed') el.className = 'hl fixed';
+    else if (item.status === 'skipped') el.className = 'hl skipped';
+    else if (i === currentIdx) el.className = 'hl active';
+  });
+
+  // Scroll note to highlight
+  const hlEl = document.getElementById('hl-' + currentIdx);
+  if (hlEl) hlEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Update counter
+  document.getElementById('counter').textContent = `校对中 ${currentIdx + 1}/${issues.length}`;
+
+  // Update arrows
+  document.getElementById('btn-prev').disabled = currentIdx === 0;
+  document.getElementById('btn-next').disabled = currentIdx === issues.length - 1;
+
+  updateProgress();
+}
+
+function updateProgress() {
+  const processed = issues.filter(i => i.status !== 'pending').length;
+  document.getElementById('prog-fill').style.width = (processed / issues.length * 100) + '%';
+  document.getElementById('prog-text').textContent = `${processed}/${issues.length} 已处理`;
+}
+
+function fixCurrent() {
+  issues[currentIdx].status = 'fixed';
+  const el = document.getElementById('hl-' + currentIdx);
+  if (el) {
+    el.className = 'hl fixed';
+    el.textContent = issues[currentIdx].corrected;
+  }
+  advanceToNext();
+}
+
+function skipCurrent() {
+  issues[currentIdx].status = 'skipped';
+  const el = document.getElementById('hl-' + currentIdx);
+  if (el) el.className = 'hl skipped';
+  advanceToNext();
+}
+
+function advanceToNext() {
+  const next = issues.findIndex((it, i) => i > currentIdx && it.status === 'pending');
+  if (next >= 0) {
+    currentIdx = next;
+  } else {
+    const first = issues.findIndex(it => it.status === 'pending');
+    if (first >= 0) currentIdx = first;
+  }
+  renderCard();
+}
+
+function goPrev() {
+  if (currentIdx > 0) { currentIdx--; renderCard(); }
+}
+
+function goNext() {
+  if (currentIdx < issues.length - 1) { currentIdx++; renderCard(); }
+}
+
+function allConfirm() {
+  issues.forEach((it, i) => {
+    if (it.status === 'pending') {
+      it.status = 'fixed';
+      const el = document.getElementById('hl-' + i);
+      if (el) { el.className = 'hl fixed'; el.textContent = it.corrected; }
+    }
+  });
+  renderCard();
+}
+
+function allCancel() {
+  issues.forEach((it, i) => {
+    if (it.status === 'pending') {
+      it.status = 'skipped';
+      const el = document.getElementById('hl-' + i);
+      if (el) el.className = 'hl skipped';
+    }
+  });
+  renderCard();
+}
+
+// Init
+renderCard();
+</script>
+</body>
+</html>

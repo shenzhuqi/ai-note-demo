@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiClaw 写入笔记 · 首页与详情 Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'PingFang SC', 'SF Pro Display', sans-serif; background: #f0f0f5; color: #1a1a1a; }
+  .page-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
+  .page-header h1 { font-size: 17px; font-weight: 600; }
+  .page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #eee; padding: 0 12px; position: sticky; top: 61px; z-index: 10; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab { padding: 12px 14px; font-size: 13px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; flex-shrink: 0; }
+  .tab.active { color: #FF6900; border-bottom-color: #FF6900; font-weight: 600; }
+  .scene-panel { display: none; padding: 16px; }
+  .scene-panel.active { display: block; }
+  .scene-desc { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; color: #555; }
+  .scene-desc strong { color: #1a1a1a; }
+
+  /* 双屏布局 */
+  .dual-phone { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; padding: 8px 0 24px; }
+  .phone-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .phone-label { font-size: 12px; color: #999; font-weight: 500; }
+  .phone { width: 340px; height: 700px; background: #1a1a1a; border-radius: 40px; padding: 10px; box-shadow: 0 16px 48px rgba(0,0,0,.25); position: relative; overflow: hidden; }
+  .phone-screen { width: 100%; height: 100%; background: #fff; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+  /* ===== 首页样式 ===== */
+  .home-status { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+  .home-status .time { font-size: 14px; font-weight: 600; }
+  .home-status .icons { font-size: 12px; color: #333; }
+  .home-top { display: flex; align-items: center; justify-content: flex-end; padding: 0 20px 4px; gap: 16px; flex-shrink: 0; }
+  .home-top .icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #333; cursor: pointer; }
+  .home-title { padding: 4px 20px 12px; font-size: 26px; font-weight: 700; flex-shrink: 0; }
+  .home-search { margin: 0 16px 12px; background: #f5f5f5; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #999; flex-shrink: 0; }
+  .folder-bar { display: flex; gap: 8px; padding: 0 16px 12px; overflow-x: auto; flex-shrink: 0; -webkit-overflow-scrolling: touch; }
+  .folder-bar::-webkit-scrollbar { display: none; }
+  .folder-chip { padding: 6px 14px; border-radius: 18px; font-size: 12px; white-space: nowrap; cursor: pointer; transition: all .15s; background: #f5f5f5; color: #666; flex-shrink: 0; }
+  .folder-chip.active { background: #FF6900; color: #fff; font-weight: 600; }
+  .folder-chip.smart { border: 1px solid #e8e8e8; background: #fff; }
+  .folder-chip.smart.active { border-color: #FF6900; background: #FFF3E8; color: #FF6900; }
+  .filter-icon { width: 36px; height: 36px; border-radius: 18px; border: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #666; flex-shrink: 0; cursor: pointer; }
+
+  .note-list { flex: 1; overflow-y: auto; padding: 0 16px; }
+  .note-card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: background .15s; position: relative; }
+  .note-card:active { background: #f8f8f8; }
+  .note-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .note-card-title { font-size: 15px; font-weight: 600; line-height: 1.4; flex: 1; display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .note-card-thumb { width: 52px; height: 52px; border-radius: 8px; background: #f0f0f0; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .note-card-preview { font-size: 13px; color: #666; line-height: 1.5; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .note-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11px; color: #999; }
+  .note-card-meta .pin { color: #FF6900; }
+  .source-label { font-size: 10px; color: #FF6900; font-weight: 500; }
+  .ai-badge-inline { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c); font-size: 8px; color: #fff; font-weight: 700; line-height: 1; vertical-align: middle; }
+  .type-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+  .tag-meeting { background: #EBF5FF; color: #2B7DE9; }
+  .tag-call { background: #E8F8EE; color: #16A34A; }
+  .tag-memo { background: #FFF3E8; color: #EA580C; }
+  .tag-ai { background: #F0EBFF; color: #7C3AED; }
+  .tag-brief { background: #FEF3C7; color: #B45309; }
+
+  /* 底部操作栏 */
+  .home-bottom { height: 64px; background: #fff; border-top: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: center; gap: 40px; flex-shrink: 0; padding-bottom: 4px; }
+  .home-bottom .btn-add, .home-bottom .btn-edit { width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #333; background: #f5f5f5; }
+  .home-bottom .btn-record { width: 56px; height: 56px; border-radius: 28px; background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; box-shadow: 0 4px 16px rgba(168,85,247,.3); }
+
+  /* ===== 详情页样式 ===== */
+  .detail-nav { height: 48px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+  .detail-nav .back { font-size: 22px; color: #333; cursor: pointer; }
+  .detail-nav .actions { display: flex; gap: 16px; font-size: 16px; color: #666; }
+  .detail-meta-bar { padding: 12px 16px; border-bottom: 1px solid #f5f5f5; flex-shrink: 0; }
+  .detail-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .detail-meta-row .type-tag { font-size: 11px; padding: 3px 10px; }
+  .source-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 4px; font-size: 11px; background: #f5f5f5; color: #888; }
+  .detail-time { font-size: 11px; color: #999; }
+  .detail-title { padding: 14px 16px 6px; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+  .detail-body { flex: 1; overflow-y: auto; padding: 8px 16px 16px; font-size: 14px; line-height: 1.8; color: #333; }
+  .detail-body p { margin-bottom: 8px; }
+  .detail-body h3 { font-size: 15px; font-weight: 600; margin: 14px 0 6px; color: #1a1a1a; }
+  .detail-body .section-icon { margin-right: 4px; }
+  .detail-body ul { padding-left: 18px; margin-bottom: 8px; }
+  .detail-body li { margin-bottom: 4px; }
+  .detail-body .todo-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; background: #FFFBEB; border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+  .detail-body .todo-check { width: 18px; height: 18px; border: 2px solid #d4d4d4; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+  .detail-body .todo-text { flex: 1; }
+  .detail-body .todo-due { font-size: 11px; color: #999; margin-top: 2px; }
+  .detail-body .decision-block { background: #EBF5FF; border-left: 3px solid #2B7DE9; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 8px 0; font-size: 13px; line-height: 1.6; }
+  .detail-body .key-info { background: #E8F8EE; border-left: 3px solid #16A34A; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 8px 0; font-size: 13px; line-height: 1.6; }
+  .detail-body .audio-inline { background: #f8f8f8; border-radius: 10px; padding: 10px 14px; margin: 8px 0; display: flex; align-items: center; gap: 10px; }
+  .detail-body .audio-inline .play { width: 32px; height: 32px; background: #FF6900; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; flex-shrink: 0; }
+  .detail-body .audio-inline .info { font-size: 12px; color: #666; }
+  .detail-body .brief-date { font-size: 13px; font-weight: 600; color: #FF6900; padding: 10px 0 4px; border-top: 1px solid #f0f0f0; margin-top: 12px; }
+  .detail-body .brief-date:first-child { border-top: none; margin-top: 0; }
+  .detail-body .brief-section { margin-bottom: 6px; }
+  .detail-body .brief-item { font-size: 13px; color: #444; padding: 2px 0; }
+
+  /* 待办中心样式 */
+  .todo-center-title { padding: 14px 16px 6px; font-size: 22px; font-weight: 700; flex-shrink: 0; }
+  .todo-center-search { margin: 8px 16px 12px; background: #f5f5f5; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #999; flex-shrink: 0; }
+  .todo-center-list { flex: 1; overflow-y: auto; padding: 0 16px; }
+  .todo-center-card { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; }
+  .todo-center-card .check { width: 22px; height: 22px; border: 2px solid #d4d4d4; border-radius: 6px; flex-shrink: 0; margin-top: 1px; }
+  .todo-center-card .check.new-item { border-color: #FF6900; position: relative; }
+  .todo-center-card .content { flex: 1; }
+  .todo-center-card .title { font-size: 14px; font-weight: 500; }
+  .todo-center-card .due { font-size: 12px; color: #999; margin-top: 3px; }
+  .todo-center-card.highlight { background: #FFF8F0; border: 1px solid #FFE0B2; }
+  .new-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; background: #FF6900; color: #fff; margin-left: 6px; font-weight: 500; }
+
+  /* ===== 宫格模式样式 ===== */
+  .grid-list { flex: 1; overflow-y: auto; padding: 0 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }
+  .grid-card { background: #fff; border-radius: 14px; padding: 12px; cursor: pointer; position: relative; overflow: hidden; }
+  .grid-card-title { font-size: 13px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 6px; }
+  .grid-card-preview { font-size: 11px; color: #666; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .grid-card-img { width: 100%; height: 80px; border-radius: 8px; background: #f0f0f0; margin-top: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; }
+  .grid-card-meta { font-size: 10px; color: #999; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+  .grid-card-meta .pin { color: #FF6900; }
+  .ai-badge { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 6px; background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c); display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,.15); line-height: 1; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>MiClaw 写入笔记 · 首页与详情 Demo</h1>
+  <p>5 种 P0 场景的首页卡片展示 + 笔记详情页展示</p>
+</div>
+<div class="tab-bar" id="tabBar">
+  <div class="tab active" onclick="switchTab(0)">会议纪要</div>
+  <div class="tab" onclick="switchTab(1)">通话摘要</div>
+  <div class="tab" onclick="switchTab(2)">语音速记(待办)</div>
+  <div class="tab" onclick="switchTab(3)">对话生成笔记</div>
+  <div class="tab" onclick="switchTab(4)">每日简报</div>
+  <div class="tab" onclick="switchTab(5)">宫格模式对比</div>
+</div>
+</style>
+
+<!-- ===== 场景1：会议纪要 ===== -->
+<div class="scene-panel active" id="panel-0">
+  <div class="scene-desc">
+    <strong>会议纪要</strong> · 系统自动产出<br>
+    触发：录音结束 → AI 后台转写+生成纪要 → 超级岛通知 → 用户点击进入笔记审阅<br>
+    来源 Agent：内容助手
+  </div>
+  <div class="dual-phone">
+    <!-- 首页 -->
+    <div class="phone-col">
+      <div class="phone-label">首页展示</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">🔍 搜索</div>
+        <div class="folder-bar">
+          <div class="filter-icon">≡</div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip smart">会议纪要</div>
+          <div class="folder-chip smart">通话摘要</div>
+          <div class="folder-chip smart">简报</div>
+          <div class="folder-chip">读后感</div>
+          <div class="folder-chip">生活点滴</div>
+        </div>
+        <div class="note-list">
+          <!-- 新写入的会议纪要卡片 -->
+          <div class="note-card" style="border: 1px solid #D4E4FF;">
+            <div class="note-card-header">
+              <div class="note-card-title">Q2 产品路线图评审会</div>
+              <div class="note-card-thumb" style="background:#EBF5FF;font-size:28px">📋</div>
+            </div>
+            <div class="note-card-preview">核心决策：MiClaw 集成作为 Q2 P0 优先级，文件理解功能降级为 P1。AI 笔记新架构开发完成 80%，预计下周进入内测…</div>
+            <div class="note-card-meta">
+              <span>刚刚</span>
+              <span class="ai-badge-inline">AI</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb">🔊 23:15</span>
+            </div>
+          </div>
+          <!-- 用户自建笔记 -->
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">Figma Sans 的创作故事</div>
+            </div>
+            <div class="note-card-preview">品牌革新意味着重新思考其根基。在我们规划图像、色彩、图案和动效的演变过程中…</div>
+            <div class="note-card-meta"><span>置顶</span><span class="pin">⭐</span><span style="margin-left:auto">🔊</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">雨夜咖啡馆</div>
+            </div>
+            <div class="note-card-preview">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。</div>
+            <div class="note-card-meta"><span>周二 13:38</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">生活点滴</div>
+            </div>
+            <div class="note-card-preview">生命是有色彩的，并不是存在的变幻无常，而是生命本身所蕴含的爱</div>
+            <div class="note-card-meta"><span>周二 13:38</span></div>
+          </div>
+        </div>
+        <div class="home-bottom">
+          <div class="btn-add">+</div>
+          <div class="btn-record">🎙</div>
+          <div class="btn-edit">✏</div>
+        </div>
+      </div></div>
+    </div>
+    <!-- 详情页 -->
+    <div class="phone-col">
+      <div class="phone-label">笔记详情</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="detail-nav"><span class="back">‹</span><div class="actions"><span>↗</span><span>⋯</span></div></div>
+        <div class="detail-meta-bar">
+          <div class="detail-meta-row">
+            <span class="source-tag">🤖 内容助手</span>
+            <span class="detail-time">2026/3/30 14:20</span>
+          </div>
+        </div>
+        <div class="detail-title">Q2 产品路线图评审会</div>
+        <div class="detail-body">
+          <div class="audio-inline">
+            <div class="play">▶</div>
+            <div class="info">录音 23:15 · 点击播放原始音频</div>
+          </div>
+          <h3><span class="section-icon">📌</span>核心决策</h3>
+          <div class="decision-block">
+            <p>1. MiClaw 集成作为 Q2 P0 优先级</p>
+            <p>2. 文件理解功能降级为 P1</p>
+            <p>3. 跨设备同步方案确定使用 CRDT</p>
+          </div>
+          <h3><span class="section-icon">📋</span>讨论要点</h3>
+          <ul>
+            <li>AI 笔记新架构开发完成 80%，预计下周进入内测</li>
+            <li>语音转写模块准确率提升至 96%</li>
+            <li>需要和云服务团队对齐同步接口</li>
+          </ul>
+          <h3><span class="section-icon">✅</span>待办事项</h3>
+          <div class="todo-item">
+            <div class="todo-check"></div>
+            <div class="todo-text">@设计组：交付浮窗视觉稿<div class="todo-due">截止：4/4 周五</div></div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-check"></div>
+            <div class="todo-text">@后端：输出同步接口文档<div class="todo-due">截止：4/2 周三</div></div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-check"></div>
+            <div class="todo-text">@产品：完成 MiClaw 写入场景 PRD<div class="todo-due">截止：4/4 周五</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 场景2：通话摘要 ===== -->
+<div class="scene-panel" id="panel-1">
+  <div class="scene-desc">
+    <strong>通话摘要</strong> · 系统自动产出<br>
+    触发：通话结束 → AI 后台生成摘要 → 超级岛通知 → 用户点击进入笔记 + 同步待办到日历<br>
+    来源 Agent：通讯 Agent
+  </div>
+  <div class="dual-phone">
+    <!-- 首页 -->
+    <div class="phone-col">
+      <div class="phone-label">首页展示</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">16:05</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">🔍 搜索</div>
+        <div class="folder-bar">
+          <div class="filter-icon">≡</div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip smart">会议纪要</div>
+          <div class="folder-chip smart">通话摘要</div>
+          <div class="folder-chip smart">简报</div>
+          <div class="folder-chip">读后感</div>
+        </div>
+        <div class="note-list">
+          <!-- 通话摘要卡片 -->
+          <div class="note-card" style="border: 1px solid #C6F0D5;">
+            <div class="note-card-header">
+              <div class="note-card-title">与王总通话 · 项目排期确认</div>
+              <div class="note-card-thumb" style="background:#E8F8EE;font-size:28px">📞</div>
+            </div>
+            <div class="note-card-preview">王总确认方案周五前提交即可，预算上限 50 万不变。需要补充竞品对比数据，下周一再碰一次…</div>
+            <div class="note-card-meta">
+              <span>5 分钟前</span>
+              <span class="ai-badge-inline">AI</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb">通话 8:32</span>
+            </div>
+          </div>
+          <!-- 其他笔记 -->
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">Figma Sans 的创作故事</div>
+            </div>
+            <div class="note-card-preview">品牌革新意味着重新思考其根基。在我们规划图像、色彩、图案和动效的演变过程中…</div>
+            <div class="note-card-meta"><span>置顶</span><span class="pin">⭐</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">雨夜咖啡馆</div>
+            </div>
+            <div class="note-card-preview">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。</div>
+            <div class="note-card-meta"><span>周二 13:38</span></div>
+          </div>
+        </div>
+        <div class="home-bottom">
+          <div class="btn-add">+</div>
+          <div class="btn-record">🎙</div>
+          <div class="btn-edit">✏</div>
+        </div>
+      </div></div>
+    </div>
+    <!-- 详情页 -->
+    <div class="phone-col">
+      <div class="phone-label">笔记详情</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="detail-nav"><span class="back">‹</span><div class="actions"><span>↗</span><span>⋯</span></div></div>
+        <div class="detail-meta-bar">
+          <div class="detail-meta-row">
+            <span class="source-tag">📱 通讯 Agent</span>
+            <span class="detail-time">2026/3/30 16:00 · 通话 8:32</span>
+          </div>
+        </div>
+        <div class="detail-title">与王总通话 · 项目排期确认</div>
+        <div class="detail-body">
+          <h3><span class="section-icon">💬</span>通话摘要</h3>
+          <p>王总来电确认 Q2 合作方案的排期和预算。核心信息如下：</p>
+          <div class="key-info">
+            <p><strong>关键信息</strong></p>
+            <p>· 方案提交截止：本周五（4/4）</p>
+            <p>· 预算上限：50 万，不可追加</p>
+            <p>· 需补充：竞品对比数据（华为、荣耀）</p>
+            <p>· 下次沟通：下周一 10:00 电话会</p>
+          </div>
+          <h3><span class="section-icon">✅</span>待办事项</h3>
+          <div class="todo-item">
+            <div class="todo-check"></div>
+            <div class="todo-text">提交合作方案给王总<div class="todo-due">截止：4/4 周五 · 已同步日历</div></div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-check"></div>
+            <div class="todo-text">补充竞品对比数据<div class="todo-due">截止：4/3 周四</div></div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-check"></div>
+            <div class="todo-text">下周一 10:00 与王总电话会<div class="todo-due">已同步日历</div></div>
+          </div>
+          <h3><span class="section-icon">👤</span>联系人</h3>
+          <p style="font-size:13px;color:#666">王总 · 138****6789 · 本月第 3 次通话</p>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 场景3：语音速记（纯待办） ===== -->
+<div class="scene-panel" id="panel-2">
+  <div class="scene-desc">
+    <strong>语音速记（纯待办）</strong> · MiClaw 对话产出<br>
+    触发：用户说"帮我记一下，周五前给王总方案" → AI 识别为纯待办 → 不创建笔记，直接同步到待办中心<br>
+    来源 Agent：内容助手 · 特殊处理：纯待办不进笔记列表，进待办中心（首页右上角 ☑）
+  </div>
+  <div class="dual-phone">
+    <!-- 首页 - 待办中心 -->
+    <div class="phone-col">
+      <div class="phone-label">首页 → 待办中心</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">10:22</span><span class="icons">📶 🔋</span></div>
+        <div class="detail-nav"><span class="back">‹</span><div class="actions"><span style="font-size:14px">⚙</span></div></div>
+        <div class="todo-center-title">待办</div>
+        <div class="todo-center-search">🔍 搜索待办</div>
+        <div class="todo-center-list">
+          <!-- 新写入的待办 - 高亮 -->
+          <div class="todo-center-card highlight">
+            <div class="check new-item"></div>
+            <div class="content">
+              <div class="title">给王总提交合作方案 <span class="new-badge">MiClaw</span></div>
+              <div class="due">4/4 周五 · 刚刚由语音速记添加</div>
+            </div>
+          </div>
+          <div class="todo-center-card highlight">
+            <div class="check new-item"></div>
+            <div class="content">
+              <div class="title">准备竞品对比数据 <span class="new-badge">MiClaw</span></div>
+              <div class="due">4/3 周四 · 刚刚由语音速记添加</div>
+            </div>
+          </div>
+          <!-- 已有待办 -->
+          <div class="todo-center-card">
+            <div class="check"></div>
+            <div class="content">
+              <div class="title">今日采购</div>
+              <div class="due">下午 5:00 · 0/3</div>
+            </div>
+          </div>
+          <div class="todo-center-card">
+            <div class="check"></div>
+            <div class="content">
+              <div class="title">去火车站接米粒</div>
+              <div class="due">12/28 13:30</div>
+            </div>
+          </div>
+          <div class="todo-center-card">
+            <div class="check"></div>
+            <div class="content">
+              <div class="title">参观中国美术馆</div>
+              <div class="due"></div>
+            </div>
+          </div>
+          <div class="todo-center-card">
+            <div class="check"></div>
+            <div class="content">
+              <div class="title">美食探店</div>
+              <div class="due"></div>
+            </div>
+          </div>
+        </div>
+        <div class="home-bottom">
+          <div class="btn-add" style="background:#FFF3E8;color:#FF6900;font-size:24px">+</div>
+        </div>
+      </div></div>
+    </div>
+    <!-- 超级岛确认 -->
+    <div class="phone-col">
+      <div class="phone-label">超级岛确认反馈</div>
+      <div class="phone"><div class="phone-screen" style="background:#f5f5f5;justify-content:center;align-items:center;padding:24px;">
+        <div class="home-status" style="position:absolute;top:0;left:0;right:0;padding:0 20px;"><span class="time">10:22</span><span class="icons">📶 🔋</span></div>
+        <!-- 模拟超级岛通知 -->
+        <div style="width:100%;max-width:300px;">
+          <div style="background:#fff;border-radius:20px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.1);text-align:center;">
+            <div style="width:48px;height:48px;background:linear-gradient(135deg,#FF6900,#FF8F40);border-radius:14px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;">✓</div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:6px;">已添加 2 条待办</div>
+            <div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:16px;">
+              <p>☐ 给王总提交合作方案 · 周五</p>
+              <p>☐ 准备竞品对比数据 · 周四</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;padding:10px;background:#f5f5f5;border-radius:12px;font-size:13px;color:#666;cursor:pointer;">查看待办</div>
+              <div style="flex:1;padding:10px;background:#FF6900;border-radius:12px;font-size:13px;color:#fff;cursor:pointer;">好的</div>
+            </div>
+          </div>
+          <div style="text-align:center;margin-top:16px;font-size:12px;color:#999;">
+            语音指令："帮我记一下，周五前给王总方案，<br>还有周四前准备竞品对比数据"
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 场景4：对话生成笔记 ===== -->
+<div class="scene-panel" id="panel-3">
+  <div class="scene-desc">
+    <strong>对话生成笔记</strong> · MiClaw 对话产出<br>
+    触发：用户说"帮我写一份竞品分析报告" → AI 多轮对话明确需求 → 生成草稿 → 确认后写入笔记<br>
+    来源 Agent：内容助手
+  </div>
+  <div class="dual-phone">
+    <!-- 首页 -->
+    <div class="phone-col">
+      <div class="phone-label">首页展示</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">11:15</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">🔍 搜索</div>
+        <div class="folder-bar">
+          <div class="filter-icon">≡</div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip smart">会议纪要</div>
+          <div class="folder-chip smart">通话摘要</div>
+          <div class="folder-chip smart">简报</div>
+          <div class="folder-chip">读后感</div>
+        </div>
+        <div class="note-list">
+          <!-- AI 生成笔记卡片 -->
+          <div class="note-card" style="border: 1px solid #DDD6FE;">
+            <div class="note-card-header">
+              <div class="note-card-title">2026 Q1 手机 AI 笔记竞品分析报告</div>
+              <div class="note-card-thumb" style="background:#F0EBFF;font-size:28px">🤖</div>
+            </div>
+            <div class="note-card-preview">本报告对比了华为、荣耀、Vivo、苹果、OPPO 五家厂商的 AI 笔记能力，从语音转写、智能总结、多端协同三个维度进行评估…</div>
+            <div class="note-card-meta">
+              <span>2 分钟前</span>
+              <span class="ai-badge-inline">AI</span>
+            </div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">Figma Sans 的创作故事</div>
+            </div>
+            <div class="note-card-preview">品牌革新意味着重新思考其根基。在我们规划图像、色彩、图案和动效的演变过程中…</div>
+            <div class="note-card-meta"><span>置顶</span><span class="pin">⭐</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">雨夜咖啡馆</div>
+            </div>
+            <div class="note-card-preview">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。</div>
+            <div class="note-card-meta"><span>周二 13:38</span></div>
+          </div>
+        </div>
+        <div class="home-bottom">
+          <div class="btn-add">+</div>
+          <div class="btn-record">🎙</div>
+          <div class="btn-edit">✏</div>
+        </div>
+      </div></div>
+    </div>
+    <!-- 详情页 -->
+    <div class="phone-col">
+      <div class="phone-label">笔记详情</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="detail-nav"><span class="back">‹</span><div class="actions"><span>↗</span><span>⋯</span></div></div>
+        <div class="detail-meta-bar">
+          <div class="detail-meta-row">
+            <span class="source-tag">🤖 内容助手</span>
+            <span class="detail-time">2026/3/30 11:13</span>
+          </div>
+        </div>
+        <div class="detail-title">2026 Q1 手机 AI 笔记竞品分析报告</div>
+        <div class="detail-body">
+          <h3><span class="section-icon">🎯</span>核心结论</h3>
+          <div class="decision-block">
+            <p>厂商 AI 笔记能力身位：华为 > 荣耀 = Vivo = 苹果 > OPPO > 小米</p>
+            <p>小米在语音转写准确率上已追平第一梯队，但智能总结和多端协同仍有差距。</p>
+          </div>
+          <h3><span class="section-icon">📊</span>能力对比</h3>
+          <p><strong>语音转写</strong></p>
+          <ul>
+            <li>华为：支持 12 种语言，准确率 97%</li>
+            <li>小米：支持 8 种语言，准确率 96%</li>
+            <li>苹果：仅英文+中文，准确率 95%</li>
+          </ul>
+          <p><strong>智能总结</strong></p>
+          <ul>
+            <li>华为：支持 5 种模板，可自定义</li>
+            <li>荣耀/Vivo：支持 3 种模板</li>
+            <li>小米：支持 5 种模板（本次新增）</li>
+          </ul>
+          <p><strong>多端协同</strong></p>
+          <ul>
+            <li>华为：手机+平板+PC 实时同步</li>
+            <li>苹果：全生态无缝同步</li>
+            <li>小米：手机+平板（PC 端规划中）</li>
+          </ul>
+          <h3><span class="section-icon">💡</span>建议</h3>
+          <p>Q2 重点补齐多端协同短板，同时利用 MiClaw 的 Agent 能力建立差异化优势。</p>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 场景5：每日简报 ===== -->
+<div class="scene-panel" id="panel-4">
+  <div class="scene-desc">
+    <strong>每日简报</strong> · 跨 Agent 协作产出 · 滚动更新<br>
+    触发：每日定时 → 多 Agent 编排生成简报 → 锁屏卡片通知 → 点击进入笔记查看<br>
+    来源 Agent：主 Agent 编排<br>
+    特殊机制：同月简报写入同一篇笔记，最新在前。3 月份的简报都在"2026年3月 每日简报"这一篇里。
+  </div>
+  <div class="dual-phone">
+    <!-- 首页 -->
+    <div class="phone-col">
+      <div class="phone-label">首页展示</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">8:00</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">🔍 搜索</div>
+        <div class="folder-bar">
+          <div class="filter-icon">≡</div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip smart">会议纪要</div>
+          <div class="folder-chip smart">通话摘要</div>
+          <div class="folder-chip smart">简报</div>
+          <div class="folder-chip">读后感</div>
+        </div>
+        <div class="note-list">
+          <!-- 每日简报卡片 - 滚动更新，只显示一张 -->
+          <div class="note-card" style="border: 1px solid #FDE68A;">
+            <div class="note-card-header">
+              <div class="note-card-title">2026年3月 每日简报</div>
+              <div class="note-card-thumb" style="background:#FEF3C7;font-size:28px">📋</div>
+            </div>
+            <div class="note-card-preview">【3/30 周一】今日 3 个会议，2 条待办到期。天气晴 18°C。小米股价 +2.3%，关注持仓异动…</div>
+            <div class="note-card-meta">
+              <span>今天 8:00 更新</span>
+              <span class="ai-badge-inline">AI</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb">本月第 30 期</span>
+            </div>
+          </div>
+          <!-- 其他笔记 -->
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">Figma Sans 的创作故事</div>
+            </div>
+            <div class="note-card-preview">品牌革新意味着重新思考其根基。在我们规划图像、色彩、图案和动效的演变过程中…</div>
+            <div class="note-card-meta"><span>置顶</span><span class="pin">⭐</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">雨夜咖啡馆</div>
+            </div>
+            <div class="note-card-preview">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。</div>
+            <div class="note-card-meta"><span>周二 13:38</span></div>
+          </div>
+        </div>
+        <div class="home-bottom">
+          <div class="btn-add">+</div>
+          <div class="btn-record">🎙</div>
+          <div class="btn-edit">✏</div>
+        </div>
+      </div></div>
+    </div>
+    <!-- 详情页 -->
+    <div class="phone-col">
+      <div class="phone-label">笔记详情（滚动更新）</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="detail-nav"><span class="back">‹</span><div class="actions"><span>↗</span><span>⋯</span></div></div>
+        <div class="detail-meta-bar">
+          <div class="detail-meta-row">
+            <span class="source-tag">🧠 主 Agent</span>
+            <span class="detail-time">每日 8:00 自动更新</span>
+          </div>
+        </div>
+        <div class="detail-title">2026年3月 每日简报</div>
+        <div class="detail-body">
+          <!-- 最新一期 -->
+          <div class="brief-date">📅 3月30日 周一（今天）</div>
+          <div class="brief-section">
+            <h3><span class="section-icon">📅</span>今日日程</h3>
+            <div class="brief-item">· 10:00 产品周会（会议室 A）</div>
+            <div class="brief-item">· 14:00 与王总电话会</div>
+            <div class="brief-item">· 16:00 设计评审</div>
+          </div>
+          <div class="brief-section">
+            <h3><span class="section-icon">✅</span>到期待办</h3>
+            <div class="todo-item">
+              <div class="todo-check"></div>
+              <div class="todo-text">提交 MiClaw 写入场景 PRD</div>
+            </div>
+            <div class="todo-item">
+              <div class="todo-check"></div>
+              <div class="todo-text">回复设计组浮窗方案反馈</div>
+            </div>
+          </div>
+          <div class="brief-section">
+            <h3><span class="section-icon">📊</span>关注动态</h3>
+            <div class="brief-item">· 小米集团 (01810.HK) +2.3%，报 52.8 港元</div>
+            <div class="brief-item">· 天气：北京 晴 8~18°C</div>
+          </div>
+
+          <!-- 前一期 -->
+          <div class="brief-date" style="color:#999;">📅 3月29日 周日</div>
+          <div class="brief-section" style="opacity:.6;">
+            <div class="brief-item">· 无日程安排</div>
+            <div class="brief-item">· 待办：整理内测反馈文档（已完成 ✓）</div>
+            <div class="brief-item">· 小米集团 (01810.HK) -0.5%，报 51.6 港元</div>
+          </div>
+
+          <!-- 更早 -->
+          <div class="brief-date" style="color:#ccc;">📅 3月28日 周六</div>
+          <div class="brief-section" style="opacity:.4;">
+            <div class="brief-item">· 无日程安排</div>
+            <div class="brief-item">· 天气：北京 多云 6~15°C</div>
+          </div>
+          <div style="text-align:center;padding:16px;font-size:12px;color:#ccc;">↑ 继续滚动查看更早的简报</div>
+
+          <!-- 历史笔记链接 -->
+          <div style="margin-top:8px;padding:12px 14px;background:#f8f8f8;border-radius:10px;">
+            <div style="font-size:12px;font-weight:600;color:#999;margin-bottom:8px;">📎 历史简报</div>
+            <div style="font-size:13px;color:#2B7DE9;padding:6px 0;cursor:pointer;">2026年2月 每日简报 ›</div>
+            <div style="font-size:13px;color:#2B7DE9;padding:6px 0;border-top:1px solid #f0f0f0;cursor:pointer;">2026年1月 每日简报 ›</div>
+            <div style="font-size:13px;color:#2B7DE9;padding:6px 0;border-top:1px solid #f0f0f0;cursor:pointer;">2025年12月 每日简报 ›</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 场景6：宫格模式对比 ===== -->
+<div class="scene-panel" id="panel-5">
+  <div class="scene-desc">
+    <strong>列表模式 vs 宫格模式</strong> · 来源标识的差异化展示<br>
+    列表模式：meta 行显示"来自 XX Agent"文字。宫格模式：卡片右上角统一 AI 角标（渐变色小图标），不区分具体 Agent。<br>
+    用户自建笔记在两种模式下都不显示任何来源标识。
+  </div>
+  <div class="dual-phone">
+    <!-- 列表模式 -->
+    <div class="phone-col">
+      <div class="phone-label">列表模式</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">🔍 搜索</div>
+        <div class="folder-bar">
+          <div class="filter-icon">≡</div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip smart">会议纪要</div>
+          <div class="folder-chip smart">通话摘要</div>
+          <div class="folder-chip smart">简报</div>
+          <div class="folder-chip">读后感</div>
+        </div>
+        <div class="note-list">
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">Q2 产品路线图评审会 · 会议纪要</div>
+            </div>
+            <div class="note-card-preview">核心决策：MiClaw 集成作为 Q2 P0 优先级，文件理解功能降级为 P1…</div>
+            <div class="note-card-meta">
+              <span>刚刚</span>
+              <span class="ai-badge-inline">AI</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb">🔊 23:15</span>
+            </div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">通话摘要 · 与王总确认排期</div>
+            </div>
+            <div class="note-card-preview">王总确认方案周五前提交即可，预算上限 50 万不变…</div>
+            <div class="note-card-meta">
+              <span>5 分钟前</span>
+              <span class="ai-badge-inline">AI</span>
+            </div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">Figma Sans 的创作故事</div>
+            </div>
+            <div class="note-card-preview">品牌革新意味着重新思考其根基…</div>
+            <div class="note-card-meta"><span>置顶</span><span class="pin">⭐</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">2026年3月 每日简报</div>
+            </div>
+            <div class="note-card-preview">【3/30 周一】今日 3 个会议，2 条待办到期…</div>
+            <div class="note-card-meta">
+              <span>今天 8:00</span>
+              <span class="ai-badge-inline">AI</span>
+            </div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div class="note-card-title">雨夜咖啡馆</div>
+            </div>
+            <div class="note-card-preview">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。</div>
+            <div class="note-card-meta"><span>周二 13:38</span></div>
+          </div>
+        </div>
+        <div class="home-bottom">
+          <div class="btn-add">+</div>
+          <div class="btn-record">🎙</div>
+          <div class="btn-edit">✏</div>
+        </div>
+      </div></div>
+    </div>
+    <!-- 宫格模式 -->
+    <div class="phone-col">
+      <div class="phone-label">宫格模式</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">🔍 搜索</div>
+        <div class="folder-bar">
+          <div class="filter-icon">≡</div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip smart">会议纪要</div>
+          <div class="folder-chip smart">通话摘要</div>
+          <div class="folder-chip smart">简报</div>
+          <div class="folder-chip">读后感</div>
+        </div>
+        <div class="grid-list">
+          <!-- AI 写入 - 有角标 -->
+          <div class="grid-card">
+            <div class="ai-badge">AI</div>
+            <div class="grid-card-title">Q2 产品路线图评审会 · 会议纪要</div>
+            <div class="grid-card-preview">核心决策：MiClaw 集成作为 Q2 P0 优先级，文件理解功能降级为 P1。AI 笔记新架构开发完成 80%…</div>
+            <div class="grid-card-meta"><span>刚刚</span><span style="margin-left:auto">🔊</span></div>
+          </div>
+          <!-- AI 写入 - 有角标 -->
+          <div class="grid-card">
+            <div class="ai-badge">AI</div>
+            <div class="grid-card-title">通话摘要 · 与王总确认排期</div>
+            <div class="grid-card-preview">王总确认方案周五前提交即可，预算上限 50 万不变。需要补充竞品对比数据…</div>
+            <div class="grid-card-meta"><span>5 分钟前</span></div>
+          </div>
+          <!-- 用户自建 - 无角标 -->
+          <div class="grid-card">
+            <div class="grid-card-title">Figma Sans 的创作故事</div>
+            <div class="grid-card-preview">品牌革新意味着重新思考其根基。在我们规划图像、色彩、图案和动效的演变过程中…</div>
+            <div class="grid-card-img" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe);">🏔</div>
+            <div class="grid-card-meta"><span>置顶</span><span class="pin">⭐</span><span style="margin-left:auto">🔊</span></div>
+          </div>
+          <!-- AI 写入 - 有角标 -->
+          <div class="grid-card">
+            <div class="ai-badge">AI</div>
+            <div class="grid-card-title">2026年3月 每日简报</div>
+            <div class="grid-card-preview">【3/30 周一】今日 3 个会议，2 条待办到期。天气晴 18°C…</div>
+            <div class="grid-card-meta"><span>今天 8:00</span></div>
+          </div>
+          <!-- 用户自建 - 无角标 -->
+          <div class="grid-card">
+            <div class="grid-card-title">雨夜咖啡馆</div>
+            <div class="grid-card-preview">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。咖啡馆里，咖啡机的蒸汽声…</div>
+            <div class="grid-card-meta"><span>周二 13:38</span></div>
+          </div>
+          <!-- 用户自建 - 无角标 -->
+          <div class="grid-card">
+            <div class="grid-card-title">生活点滴</div>
+            <div class="grid-card-preview">生命是有色彩的，并不是存在的变幻无常，而是生命本身所蕴含的爱</div>
+            <div class="grid-card-img" style="background:linear-gradient(135deg,#fde68a,#fbbf24);">🌄</div>
+            <div class="grid-card-meta"><span>周二 13:38</span></div>
+          </div>
+        </div>
+        <div class="home-bottom">
+          <div class="btn-add">+</div>
+          <div class="btn-record">🎙</div>
+          <div class="btn-edit">✏</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+  document.querySelectorAll('.scene-panel').forEach(function(p, i) { p.classList.toggle('active', i === idx); });
+}
+</script>
+
+</body>
+</html>

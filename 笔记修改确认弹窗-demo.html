@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔记修改确认弹窗 · 交互 Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; background: #f0f0f5; color: #1a1a1a; }
+
+  /* 页面布局 */
+  .page-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
+  .page-header h1 { font-size: 17px; font-weight: 600; }
+  .page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+  .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #eee; padding: 0 16px; position: sticky; top: 61px; z-index: 10; }
+  .tab { padding: 12px 16px; font-size: 14px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
+  .tab.active { color: #FF6900; border-bottom-color: #FF6900; font-weight: 600; }
+
+  .scene-panel { display: none; padding: 16px; }
+  .scene-panel.active { display: block; }
+
+  /* 手机外壳 */
+  .phone-wrap { display: flex; justify-content: center; padding: 8px 0 24px; }
+  .phone { width: 375px; height: 720px; background: #1a1a1a; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.3); position: relative; overflow: hidden; }
+  .phone-screen { width: 100%; height: 100%; background: #f7f7f7; border-radius: 34px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+  /* 状态栏 */
+  .status-bar { height: 44px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+  .status-bar .time { font-size: 15px; font-weight: 600; }
+  .status-bar .icons { font-size: 12px; color: #333; }
+
+  /* 聊天区域 */
+  .chat-area { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg-user { align-self: flex-end; background: #FF6900; color: #fff; padding: 10px 14px; border-radius: 18px 18px 4px 18px; font-size: 14px; max-width: 75%; line-height: 1.5; }
+  .msg-system { align-self: flex-start; background: #fff; padding: 10px 14px; border-radius: 18px 18px 18px 4px; font-size: 13px; max-width: 85%; line-height: 1.5; color: #555; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+  /* 弹窗通用 */
+  .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: flex-end; z-index: 20; border-radius: 34px; }
+  .modal { background: #fff; border-radius: 20px 20px 0 0; width: 100%; padding: 0 0 16px; display: flex; flex-direction: column; }
+  .modal-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 10px auto 0; }
+  .modal-title { font-size: 15px; font-weight: 600; padding: 12px 16px 8px; display: flex; align-items: center; gap: 6px; }
+  .modal-title .icon { font-size: 16px; }
+  .modal-body { padding: 0 16px; overflow-y: auto; }
+  .modal-footer { padding: 12px 16px 0; display: flex; gap: 10px; }
+  .btn { flex: 1; height: 44px; border-radius: 22px; border: none; font-size: 15px; font-weight: 500; cursor: pointer; }
+  .btn-cancel { background: #f0f0f0; color: #333; }
+  .btn-confirm { background: #FF6900; color: #fff; }
+
+  /* diff 样式 */
+  .diff-line { font-size: 13px; line-height: 1.8; padding: 3px 8px; border-radius: 4px; font-family: inherit; }
+  .diff-del { background: #fff0f0; color: #d32f2f; text-decoration: line-through; }
+  .diff-add { background: #f0fff4; color: #2e7d32; }
+  .diff-ctx { color: #999; }
+  .diff-sep { border-top: 1px dashed #eee; margin: 6px 0; }
+
+  /* 修改摘要卡片 */
+  .summary-card { background: #f8f8f8; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  .summary-card .summary-title { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .summary-item { font-size: 13px; color: #333; line-height: 1.8; display: flex; align-items: flex-start; gap: 4px; }
+  .summary-item::before { content: '·'; color: #FF6900; font-weight: bold; flex-shrink: 0; }
+
+  /* 修改详情折叠 */
+  .detail-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #888; padding: 6px 0; cursor: pointer; }
+  .detail-header .arrow { transition: transform .2s; }
+  .detail-header.open .arrow { transform: rotate(180deg); }
+  .diff-group { margin-bottom: 8px; }
+  .diff-group-label { font-size: 11px; color: #aaa; margin-bottom: 4px; }
+  .diff-item { margin-bottom: 6px; }
+  .diff-item-num { font-size: 11px; color: #bbb; margin-bottom: 2px; }
+  .expand-hint { font-size: 12px; color: #FF6900; text-align: center; padding: 6px 0; cursor: pointer; }
+
+  /* 双栏对比 */
+  .dual-pane { display: flex; gap: 8px; height: 280px; }
+  .pane { flex: 1; border: 1px solid #eee; border-radius: 8px; overflow-y: auto; padding: 8px; }
+  .pane-label { font-size: 11px; color: #aaa; margin-bottom: 6px; font-weight: 500; }
+  .pane-text { font-size: 12px; line-height: 1.8; color: #333; }
+  .pane-del { background: #fff0f0; border-radius: 3px; }
+  .pane-add { background: #f0fff4; border-radius: 3px; }
+  .pane-move { background: #fffbe6; border-radius: 3px; }
+  .toggle-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 8px; }
+  .toggle-label { font-size: 12px; color: #888; }
+  .toggle { width: 36px; height: 20px; background: #FF6900; border-radius: 10px; position: relative; cursor: pointer; }
+  .toggle::after { content: ''; width: 16px; height: 16px; background: #fff; border-radius: 50%; position: absolute; top: 2px; right: 2px; transition: right .2s; }
+  .toggle.off { background: #ddd; }
+  .toggle.off::after { right: 18px; }
+
+  /* 降级方案 */
+  .warning-card { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px; color: #7d5a00; display: flex; gap: 6px; }
+  .full-preview { border: 1px solid #eee; border-radius: 8px; padding: 10px; max-height: 220px; overflow-y: auto; font-size: 12px; line-height: 1.9; color: #333; }
+  .modal-footer-3 { padding: 12px 16px 0; display: flex; gap: 8px; }
+  .btn-sm { flex: 1; height: 40px; border-radius: 20px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-view { background: #f0f0f0; color: #333; }
+
+  /* 场景说明 */
+  .scene-desc { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #555; }
+  .scene-desc strong { color: #1a1a1a; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+  .badge-small { background: #e8f5e9; color: #2e7d32; }
+  .badge-mid { background: #fff3e0; color: #e65100; }
+  .badge-large { background: #fce4ec; color: #c62828; }
+  .badge-fallback { background: #f3e5f5; color: #6a1b9a; }
+
+  /* 触发按钮 */
+  .trigger-btn { background: #FF6900; color: #fff; border: none; border-radius: 20px; padding: 8px 20px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+  .trigger-btn:active { opacity: .8; }
+
+  /* 底部输入栏 */
+  .input-bar { height: 52px; background: #fff; border-top: 1px solid #f0f0f0; display: flex; align-items: center; padding: 0 16px; gap: 10px; flex-shrink: 0; }
+  .input-bar .mic { font-size: 20px; }
+  .input-bar .input-hint { flex: 1; font-size: 14px; color: #bbb; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>笔记修改确认弹窗 · 交互 Demo</h1>
+  <p>点击各场景的「触发修改」按钮查看弹窗效果</p>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab(0)">小修改</div>
+  <div class="tab" onclick="switchTab(1)">中修改</div>
+  <div class="tab" onclick="switchTab(2)">大修改</div>
+  <div class="tab" onclick="switchTab(3)">降级方案</div>
+</div>
+
+<!-- ===== 场景1：小修改 ===== -->
+<div class="scene-panel active" id="panel-0">
+  <div class="scene-desc">
+    <span class="badge badge-small">小修改</span><strong>≤3 处，每处 ≤50 字</strong><br>
+    场景：「帮我把西红柿改成 3 斤」。逐行 diff 展示，红色删除线 + 绿色新文字，上下各保留 1 行上下文。
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="status-bar"><span class="time">15:20</span><span class="icons">📶 🔋</span></div>
+        <div class="chat-area" id="chat-0">
+          <div class="msg-user">帮我把西红柿的，嗯，改成 3 斤。</div>
+          <div class="msg-system">好的，我来帮你修改～</div>
+        </div>
+        <div class="input-bar"><span class="mic">🎙</span><span class="input-hint">发消息或长按说话</span></div>
+
+        <!-- 小修改弹窗 -->
+        <div class="modal-overlay" id="modal-0" style="display:none">
+          <div class="modal" style="max-height:55%">
+            <div class="modal-handle"></div>
+            <div class="modal-title"><span class="icon">📝</span>笔记修改预览</div>
+            <div class="modal-body">
+              <div class="diff-line diff-ctx">🥬 蔬菜水果</div>
+              <div class="diff-line diff-del">- 有机西红柿 2斤（做番茄炒蛋用）</div>
+              <div class="diff-line diff-add">+ 有机西红柿 3斤（做番茄炒蛋用）</div>
+              <div class="diff-line diff-ctx">🥚 鸡蛋 10个</div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-cancel" onclick="closeModal(0)">取消</button>
+              <button class="btn btn-confirm" onclick="confirmModal(0)">确认修改</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center">
+    <button class="trigger-btn" onclick="openModal(0)">触发修改</button>
+  </div>
+</div>
+
+<!-- ===== 场景2：中修改 ===== -->
+<div class="scene-panel" id="panel-1">
+  <div class="scene-desc">
+    <span class="badge badge-mid">中修改</span><strong>4~10 处，或单处 51~200 字</strong><br>
+    场景：「把会议纪要里所有张三改成李四，日期改成下周」。顶部摘要卡片说清楚改了什么，下方分组展示 diff，默认折叠。
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="status-bar"><span class="time">15:20</span><span class="icons">📶 🔋</span></div>
+        <div class="chat-area">
+          <div class="msg-user">把会议纪要里所有张三改成李四，日期也改成下周</div>
+          <div class="msg-system">好的，找到 6 处需要修改，请确认～</div>
+        </div>
+        <div class="input-bar"><span class="mic">🎙</span><span class="input-hint">发消息或长按说话</span></div>
+
+        <!-- 中修改弹窗 -->
+        <div class="modal-overlay" id="modal-1" style="display:none">
+          <div class="modal" style="max-height:72%">
+            <div class="modal-handle"></div>
+            <div class="modal-title"><span class="icon">📝</span>笔记修改预览</div>
+            <div class="modal-body">
+              <div class="summary-card">
+                <div class="summary-title">共 6 处修改</div>
+                <div class="summary-item">替换「张三」→「李四」（4 处）</div>
+                <div class="summary-item">替换「3月15日」→「3月22日」（2 处）</div>
+              </div>
+              <div class="detail-header" id="detail-toggle-1" onclick="toggleDetail(1)">
+                修改详情 <span class="arrow">▼</span>
+              </div>
+              <div id="detail-body-1" style="display:none">
+                <div class="diff-group">
+                  <div class="diff-group-label">「张三」→「李四」共 4 处</div>
+                  <div class="diff-item">
+                    <div class="diff-item-num">第 1 处</div>
+                    <div class="diff-line diff-del">- 由张三负责跟进后续事项</div>
+                    <div class="diff-line diff-add">+ 由李四负责跟进后续事项</div>
+                  </div>
+                  <div class="diff-item">
+                    <div class="diff-item-num">第 2 处</div>
+                    <div class="diff-line diff-del">- 张三提出的方案已通过评审</div>
+                    <div class="diff-line diff-add">+ 李四提出的方案已通过评审</div>
+                  </div>
+                  <div class="expand-hint" id="expand-hint-1" onclick="expandAll(1)">还有 2 处，点击展开 ▼</div>
+                  <div id="expand-more-1" style="display:none">
+                    <div class="diff-item">
+                      <div class="diff-item-num">第 3 处</div>
+                      <div class="diff-line diff-del">- 联系人：张三（18800001234）</div>
+                      <div class="diff-line diff-add">+ 联系人：李四（18800001234）</div>
+                    </div>
+                    <div class="diff-item">
+                      <div class="diff-item-num">第 4 处</div>
+                      <div class="diff-line diff-del">- 张三确认参加下次评审</div>
+                      <div class="diff-line diff-add">+ 李四确认参加下次评审</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="diff-sep"></div>
+                <div class="diff-group">
+                  <div class="diff-group-label">「3月15日」→「3月22日」共 2 处</div>
+                  <div class="diff-item">
+                    <div class="diff-item-num">第 1 处</div>
+                    <div class="diff-line diff-del">- 截止日期：3月15日</div>
+                    <div class="diff-line diff-add">+ 截止日期：3月22日</div>
+                  </div>
+                  <div class="diff-item">
+                    <div class="diff-item-num">第 2 处</div>
+                    <div class="diff-line diff-del">- 下次会议定于 3月15日 下午 3 点</div>
+                    <div class="diff-line diff-add">+ 下次会议定于 3月22日 下午 3 点</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-cancel" onclick="closeModal(1)">取消</button>
+              <button class="btn btn-confirm" onclick="confirmModal(1)">确认修改</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center">
+    <button class="trigger-btn" onclick="openModal(1)">触发修改</button>
+  </div>
+</div>
+
+<!-- ===== 场景3：大修改 ===== -->
+<div class="scene-panel" id="panel-2">
+  <div class="scene-desc">
+    <span class="badge badge-large">大修改</span><strong>>10 处，或涉及段落级重写/结构调整</strong><br>
+    场景：「帮我把这篇会议纪要重新整理一下，把历史背景删掉，加上下一步计划」。弹窗升级为半屏，左右双栏对比，支持「仅看修改处」开关。
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="status-bar"><span class="time">15:20</span><span class="icons">📶 🔋</span></div>
+        <div class="chat-area">
+          <div class="msg-user">帮我把这篇会议纪要重新整理，删掉历史背景，加上下一步计划</div>
+          <div class="msg-system">好的，修改范围比较大，请仔细确认一下～</div>
+        </div>
+        <div class="input-bar"><span class="mic">🎙</span><span class="input-hint">发消息或长按说话</span></div>
+
+        <!-- 大修改弹窗 -->
+        <div class="modal-overlay" id="modal-2" style="display:none">
+          <div class="modal" style="max-height:85%">
+            <div class="modal-handle"></div>
+            <div class="modal-title"><span class="icon">📝</span>笔记修改预览</div>
+            <div class="modal-body">
+              <div class="summary-card">
+                <div class="summary-title">本次修改范围较大</div>
+                <div class="summary-item">重写了「项目进展」段落（约 320 字 → 180 字）</div>
+                <div class="summary-item">删除了「历史背景」段落</div>
+                <div class="summary-item">新增了「下一步计划」段落</div>
+                <div class="summary-item">把「总结」段落移到了开头</div>
+              </div>
+              <div class="toggle-bar">
+                <span class="toggle-label">仅看修改处</span>
+                <div class="toggle off" id="toggle-2" onclick="toggleFilter(2)"></div>
+              </div>
+              <div class="dual-pane">
+                <div class="pane" id="pane-left">
+                  <div class="pane-label">原文</div>
+                  <div class="pane-text">
+                    <p>📋 Q1 产品评审会议纪要</p>
+                    <p>时间：2026年3月15日</p>
+                    <br>
+                    <p><strong>议题一：项目进展</strong></p>
+                    <p>本项目自去年 Q4 启动以来，经历了多个阶段的迭代。团队在技术选型上花费了大量时间，最终确定了现有方案。目前整体进度符合预期，但部分功能模块存在延期风险，需要重点关注。核心功能已完成 70%，预计本月底可以完成剩余 30%。</p>
+                    <br>
+                    <p class="pane-del"><strong>历史背景</strong></p>
+                    <p class="pane-del">该项目最早于 2024 年提出，经过多轮讨论和方案调整，于 2025 年 Q4 正式立项。期间经历了团队调整、需求变更等多个挑战，最终形成了现有的产品方向。</p>
+                    <br>
+                    <p><strong>结论</strong></p>
+                    <p>Q1 目标可达成，需关注 3 个风险点。</p>
+                  </div>
+                </div>
+                <div class="pane" id="pane-right">
+                  <div class="pane-label">修改后</div>
+                  <div class="pane-text">
+                    <p class="pane-move"><strong>结论（已移至开头）</strong></p>
+                    <p class="pane-move">Q1 目标可达成，需关注 3 个风险点。</p>
+                    <br>
+                    <p>📋 Q1 产品评审会议纪要</p>
+                    <p>时间：2026年3月15日</p>
+                    <br>
+                    <p><strong>议题一：项目进展</strong></p>
+                    <p class="pane-add">核心功能已完成 70%，预计本月底完成。部分模块存在延期风险，需重点关注。</p>
+                    <br>
+                    <p class="pane-add"><strong>下一步计划（新增）</strong></p>
+                    <p class="pane-add">1. 本周完成剩余 30% 核心功能开发<br>2. 下周启动 Beta 测试<br>3. 月底前完成全量上线</p>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:#bbb;text-align:center;padding:6px 0">
+                🔴 删除 &nbsp; 🟢 新增 &nbsp; 🟡 移动
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-cancel" onclick="closeModal(2)">取消</button>
+              <button class="btn btn-confirm" onclick="confirmModal(2)">确认修改</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center">
+    <button class="trigger-btn" onclick="openModal(2)">触发修改</button>
+  </div>
+</div>
+
+<!-- ===== 场景4：降级方案 ===== -->
+<div class="scene-panel" id="panel-3">
+  <div class="scene-desc">
+    <span class="badge badge-fallback">降级方案</span><strong>全文重写超 80%，diff 无意义</strong><br>
+    场景：「帮我把这篇笔记完全重写成正式的项目报告」。放弃 diff，直接展示修改后全文，新增内容绿色标注，提供「查看原文」切换。
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="status-bar"><span class="time">15:20</span><span class="icons">📶 🔋</span></div>
+        <div class="chat-area">
+          <div class="msg-user">帮我把这篇笔记完全重写成正式的项目报告</div>
+          <div class="msg-system">好的，重写后内容变化较大，请查看完整预览～</div>
+        </div>
+        <div class="input-bar"><span class="mic">🎙</span><span class="input-hint">发消息或长按说话</span></div>
+
+        <!-- 降级弹窗 -->
+        <div class="modal-overlay" id="modal-3" style="display:none">
+          <div class="modal" style="max-height:85%">
+            <div class="modal-handle"></div>
+            <div class="modal-title"><span class="icon">📝</span>笔记修改预览</div>
+            <div class="modal-body">
+              <div class="warning-card">
+                <span>⚠️</span>
+                <span>本次修改覆盖全文大部分内容，建议直接查看修改后的完整版本</span>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:8px">
+                <button id="view-btn-new" style="flex:1;height:32px;border-radius:16px;border:none;background:#FF6900;color:#fff;font-size:13px;cursor:pointer" onclick="switchView('new')">修改后</button>
+                <button id="view-btn-old" style="flex:1;height:32px;border-radius:16px;border:1px solid #ddd;background:#fff;color:#666;font-size:13px;cursor:pointer" onclick="switchView('old')">查看原文</button>
+              </div>
+              <div class="full-preview" id="view-new">
+                <p><strong>Q1 产品规划项目报告</strong></p>
+                <p style="color:#888;font-size:11px">2026年3月 · 产品部</p>
+                <br>
+                <p><strong>一、执行摘要</strong></p>
+                <p class="pane-add">本报告总结 Q1 产品规划工作，核心目标已完成 85%，整体进展符合预期。</p>
+                <br>
+                <p><strong>二、项目背景</strong></p>
+                <p class="pane-add">基于用户调研和市场分析，本季度重点推进 AI 笔记新架构落地，覆盖语音记录、智能整理、跨设备同步三大核心能力。</p>
+                <br>
+                <p><strong>三、进展与成果</strong></p>
+                <p class="pane-add">· 语音转写准确率达 95%，超出目标 5%<br>· AI 整理功能日活用户 12 万，环比增长 40%<br>· 跨设备同步延迟降至 8 秒，达成目标</p>
+                <br>
+                <p><strong>四、风险与应对</strong></p>
+                <p class="pane-add">当前存在 3 个风险点，已制定应对方案，预计不影响 Q1 整体目标达成。</p>
+              </div>
+              <div class="full-preview" id="view-old" style="display:none">
+                <p>今天开了个会，讨论了 Q1 的产品规划。</p>
+                <br>
+                <p>主要说了几件事：</p>
+                <p>- 语音功能进展不错，准确率挺高的</p>
+                <p>- AI 整理用的人越来越多了</p>
+                <p>- 跨设备同步有点慢，在优化</p>
+                <br>
+                <p>有几个风险要注意，但应该问题不大。</p>
+                <p>下次会议再跟进一下。</p>
+              </div>
+              <div style="font-size:11px;color:#bbb;padding:6px 0">🟢 绿色背景 = 新增内容</div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-cancel" onclick="closeModal(3)">取消</button>
+              <button class="btn btn-confirm" onclick="confirmModal(3)">确认修改</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center">
+    <button class="trigger-btn" onclick="openModal(3)">触发修改</button>
+  </div>
+</div>
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.scene-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+}
+
+function openModal(idx) {
+  document.getElementById('modal-' + idx).style.display = 'flex';
+}
+
+function closeModal(idx) {
+  document.getElementById('modal-' + idx).style.display = 'none';
+  // 重置状态
+  if (idx === 1) {
+    const dh = document.getElementById('detail-toggle-1');
+    const db = document.getElementById('detail-body-1');
+    dh.classList.remove('open');
+    db.style.display = 'none';
+    document.getElementById('expand-more-1').style.display = 'none';
+    document.getElementById('expand-hint-1').style.display = 'block';
+  }
+}
+
+function confirmModal(idx) {
+  closeModal(idx);
+  const chats = [
+    document.getElementById('chat-0'),
+    document.querySelectorAll('.chat-area')[1],
+    document.querySelectorAll('.chat-area')[2],
+    document.querySelectorAll('.chat-area')[3],
+  ];
+  const msgs = ['✅ 已修改，西红柿改成 3 斤了', '✅ 已修改，共替换 6 处', '✅ 已修改，笔记结构已更新', '✅ 已修改，笔记已重写为正式报告'];
+  const chat = document.querySelectorAll('.chat-area')[idx];
+  const msg = document.createElement('div');
+  msg.className = 'msg-system';
+  msg.textContent = msgs[idx];
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function toggleDetail(idx) {
+  const header = document.getElementById('detail-toggle-' + idx);
+  const body = document.getElementById('detail-body-' + idx);
+  const isOpen = header.classList.toggle('open');
+  body.style.display = isOpen ? 'block' : 'none';
+}
+
+function expandAll(idx) {
+  document.getElementById('expand-more-' + idx).style.display = 'block';
+  document.getElementById('expand-hint-' + idx).style.display = 'none';
+}
+
+function toggleFilter(idx) {
+  const toggle = document.getElementById('toggle-' + idx);
+  const isOn = toggle.classList.toggle('off');
+  // 仅看修改处：隐藏未修改的段落（简化演示）
+  const panes = document.querySelectorAll('.pane-text p:not([class])');
+  panes.forEach(p => { p.style.display = isOn ? 'none' : ''; });
+}
+
+function switchView(type) {
+  document.getElementById('view-new').style.display = type === 'new' ? 'block' : 'none';
+  document.getElementById('view-old').style.display = type === 'old' ? 'block' : 'none';
+  document.getElementById('view-btn-new').style.background = type === 'new' ? '#FF6900' : '#fff';
+  document.getElementById('view-btn-new').style.color = type === 'new' ? '#fff' : '#666';
+  document.getElementById('view-btn-new').style.border = type === 'new' ? 'none' : '1px solid #ddd';
+  document.getElementById('view-btn-old').style.background = type === 'old' ? '#FF6900' : '#fff';
+  document.getElementById('view-btn-old').style.color = type === 'old' ? '#fff' : '#666';
+  document.getElementById('view-btn-old').style.border = type === 'old' ? 'none' : '1px solid #ddd';
+}
+</script>
+</body>
+</html>

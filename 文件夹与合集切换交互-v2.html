@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文件夹与合集切换交互 V2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}
+.phone{width:375px;height:812px;border:3px solid #1a1a1a;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.28)}
+.screen{display:flex;flex-direction:column;height:100%;overflow:hidden;background:#fff;position:relative}
+
+/* Status Bar */
+.status-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 28px 6px;font-size:12px;font-weight:600;flex-shrink:0;z-index:10}
+.status-bar .time{font-size:15px;font-weight:700;letter-spacing:0.3px}
+.status-bar .icons{display:flex;gap:5px;align-items:center;font-size:11px}
+
+/* Top Bar */
+.top-bar{display:flex;justify-content:space-between;align-items:center;padding:2px 20px 0;flex-shrink:0}
+.top-bar svg{width:22px;height:22px;color:#333;cursor:pointer;transition:color .2s}
+.top-bar svg:hover{color:#000}
+
+/* Page Title */
+.page-title{font-size:30px;font-weight:800;padding:6px 20px 4px;flex-shrink:0;letter-spacing:-0.5px;color:#0f0f0f}
+
+/* Search Bar */
+.search-bar{margin:4px 16px 6px;background:#f2f2f7;border-radius:12px;padding:9px 14px;display:flex;align-items:center;gap:8px;font-size:14px;color:#8e8e93;flex-shrink:0;transition:background .2s}
+.search-bar svg{width:16px;height:16px;color:#8e8e93;flex-shrink:0}
+
+/* Filter Bar */
+.filter-bar{display:flex;align-items:center;padding:6px 16px 4px;gap:8px;flex-shrink:0;overflow:hidden}
+.mode-btn{width:34px;height:34px;border-radius:10px;border:1.5px solid #FF6D00;background:linear-gradient(135deg,#FFF3E0,#FFE0B2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .35s cubic-bezier(.4,0,.2,1)}
+.mode-btn:hover{transform:scale(1.05)}
+.mode-btn.ai-mode{border-color:transparent;background:linear-gradient(135deg,#E8DEF8,#D0BCFF,#F3E5F5);box-shadow:0 2px 12px rgba(124,77,255,.2)}
+.mode-btn svg{width:18px;height:18px}
+
+/* Chips */
+.chips-wrapper{position:relative;flex:1;overflow:hidden;height:34px}
+.chips-track{display:flex;gap:8px;position:absolute;top:0;left:0;height:100%;white-space:nowrap;transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .35s}
+.chips-track.hidden{opacity:0;pointer-events:none;transform:translateY(6px)}
+.chip{padding:7px 16px;border-radius:17px;font-size:13px;font-weight:500;background:#f2f2f7;color:#636366;cursor:pointer;white-space:nowrap;transition:all .25s cubic-bezier(.4,0,.2,1);line-height:1;display:flex;align-items:center}
+.chip:hover{background:#e5e5ea}
+.chip.active{background:#FF6D00;color:#fff;box-shadow:0 2px 8px rgba(255,109,0,.25)}
+.filter-bar.ai-mode .chip.active{background:linear-gradient(135deg,#7C4DFF,#B388FF);color:#fff;box-shadow:0 2px 12px rgba(124,77,255,.3)}
+
+/* AI Insight Banner */
+.ai-insight{margin:0 16px 8px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#F3E5F5 0%,#EDE7F6 40%,#E8EAF6 100%);border:1px solid rgba(124,77,255,.1);flex-shrink:0;display:none;animation:fadeSlideIn .4s ease}
+.ai-insight.show{display:block}
+.ai-insight-header{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.ai-insight-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center}
+.ai-insight-icon svg{width:16px;height:16px}
+.ai-insight-title{font-size:12px;font-weight:600;color:#5E35B1;letter-spacing:0.2px}
+.ai-insight-desc{font-size:12px;color:#7E57C2;line-height:1.5;letter-spacing:0.1px}
+
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Note List */
+.note-list{flex:1;overflow-y:auto;padding:4px 16px 16px;-webkit-overflow-scrolling:touch}
+.note-list.hidden{display:none}
+.note-card{display:flex;gap:12px;padding:14px;border-radius:14px;background:#fff;border:1px solid #f0f0f0;margin-bottom:8px;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1)}
+.note-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);border-color:#e0e0e0;transform:translateY(-1px)}
+
+/* Collection Note Card - service/content feel */
+.note-card.ai-card{border:1px solid rgba(124,77,255,.08);background:linear-gradient(135deg,#FAFAFE 0%,#F8F6FF 100%)}
+.note-card.ai-card:hover{border-color:rgba(124,77,255,.15);box-shadow:0 4px 20px rgba(124,77,255,.08)}
+.ai-card .ai-source{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#9575CD;background:rgba(124,77,255,.08);padding:2px 6px;border-radius:4px;margin-top:4px}
+.ai-card .ai-source svg{width:10px;height:10px}
+
+/* Bottom Bar */
+.bottom-bar{display:flex;justify-content:space-around;align-items:center;padding:8px 16px 28px;flex-shrink:0;border-top:1px solid #f0f0f0;background:#fff}
+.bottom-bar-item{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;opacity:.5;transition:opacity .2s}
+.bottom-bar-item.active{opacity:1}
+.bottom-bar-item svg{width:22px;height:22px}
+.bottom-bar-item span{font-size:10px;color:#636366}
+
+/* ===== SIDE PANEL ===== */
+.panel-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);z-index:100;opacity:0;pointer-events:none;transition:opacity .35s}
+.panel-overlay.show{opacity:1;pointer-events:auto}
+
+.panel{position:absolute;top:0;left:0;width:100%;height:100%;z-index:101;pointer-events:none}
+.panel.show{pointer-events:auto}
+.panel-inner{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;transform:translateX(-100%);transition:transform .4s cubic-bezier(.32,.72,.24,1);display:flex;flex-direction:column;pointer-events:auto}
+.panel.show .panel-inner{transform:translateX(0)}
+
+.panel-header{display:flex;justify-content:space-between;align-items:center;padding:52px 20px 12px;flex-shrink:0}
+.panel-header-left{cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;transition:background .2s}
+.panel-header-left:hover{background:#f2f2f7}
+.panel-header-left svg{width:22px;height:22px;color:#333}
+.panel-header-right{display:flex;gap:8px}
+.panel-header-right .icon-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s}
+.panel-header-right .icon-btn:hover{background:#f2f2f7}
+.panel-header-right svg{width:20px;height:20px;color:#555}
+
+/* Fixed Items */
+.panel-fixed{padding:0 0 4px;flex-shrink:0}
+.panel-item{display:flex;align-items:center;padding:12px 20px;gap:14px;cursor:pointer;transition:background .15s}
+.panel-item:hover{background:#f9f9f9}
+.panel-item-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.panel-item-icon svg{width:20px;height:20px}
+.panel-item-label{flex:1;font-size:15px;color:#1a1a1a;font-weight:400}
+.panel-item-count{font-size:13px;color:#aeaeb2;font-weight:400}
+
+.panel-divider{height:1px;background:#f0f0f0;margin:4px 20px}
+
+/* Section Label */
+.section-label{padding:14px 20px 6px;font-size:12px;font-weight:600;color:#aeaeb2;letter-spacing:0.5px;text-transform:uppercase}
+
+/* ===== FOLDER ITEMS (traditional) ===== */
+.folder-item{display:flex;align-items:center;padding:11px 20px;gap:14px;cursor:pointer;transition:background .15s}
+.folder-item:hover{background:#f9f9f9}
+.folder-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.folder-icon svg{width:20px;height:20px}
+.folder-label{flex:1;font-size:15px;color:#1a1a1a}
+.folder-count{font-size:13px;color:#aeaeb2}
+
+/* ===== COLLECTION ITEMS (AI style - differentiated!) ===== */
+.collection-section{padding:4px 16px 8px}
+.collection-card{display:flex;align-items:center;padding:12px 14px;gap:12px;cursor:pointer;border-radius:14px;margin-bottom:6px;background:linear-gradient(135deg,#F8F6FF 0%,#F3EEFF 50%,#EDE7F6 100%);border:1px solid rgba(124,77,255,.06);transition:all .25s cubic-bezier(.4,0,.2,1)}
+.collection-card:hover{background:linear-gradient(135deg,#F3EEFF 0%,#EDE7F6 50%,#E8DEF8 100%);border-color:rgba(124,77,255,.12);box-shadow:0 2px 12px rgba(124,77,255,.08);transform:translateY(-1px)}
+.collection-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:linear-gradient(135deg,#B388FF,#7C4DFF);box-shadow:0 2px 8px rgba(124,77,255,.25)}
+.collection-icon svg{width:18px;height:18px}
+.collection-info{flex:1;min-width:0}
+.collection-name{font-size:14px;font-weight:600;color:#311B92;margin-bottom:2px}
+.collection-desc{font-size:11px;color:#9575CD;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.collection-count{font-size:12px;color:#B39DDB;font-weight:500;flex-shrink:0}
+
+/* Panel Scrollable */
+.panel-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+
+/* Panel Bottom Switch */
+.panel-bottom{padding:12px 20px 36px;flex-shrink:0;border-top:1px solid #f0f0f0;display:flex;justify-content:center}
+.switch-btn{display:flex;align-items:center;gap:6px;padding:8px 20px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;transition:all .25s;border:none;background:none}
+.switch-btn.to-collection{color:#7C4DFF;background:linear-gradient(135deg,#F3E5F5,#EDE7F6);border:1px solid rgba(124,77,255,.1)}
+.switch-btn.to-collection:hover{background:linear-gradient(135deg,#EDE7F6,#E8DEF8);box-shadow:0 2px 12px rgba(124,77,255,.15)}
+.switch-btn.to-folder{color:#FF6D00;background:linear-gradient(135deg,#FFF3E0,#FFE0B2);border:1px solid rgba(255,109,0,.1)}
+.switch-btn.to-folder:hover{background:linear-gradient(135deg,#FFE0B2,#FFCC80);box-shadow:0 2px 12px rgba(255,109,0,.15)}
+.switch-btn svg{width:16px;height:16px}
+
+/* Animations */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.ai-shimmer{background:linear-gradient(90deg,transparent 0%,rgba(124,77,255,.04) 50%,transparent 100%);background-size:200% 100%;animation:shimmer 3s ease-in-out infinite}
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="screen">
+<!-- Status Bar -->
+<div class="status-bar">
+<span class="time">9:41</span>
+<div class="icons">
+<span>5G</span>
+<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 00-6 0zm-4-4l2 2a7.07 7.07 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+</div>
+</div>
+
+<!-- Top Bar -->
+<div class="top-bar">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+</div>
+
+<div class="page-title">笔记</div>
+
+<!-- Search -->
+<div class="search-bar">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+<span>搜索笔记</span>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar" id="filterBar">
+<div class="mode-btn" id="modeBtn" onclick="openPanel()">
+<svg id="modeBtnIcon" viewBox="0 0 24 24" fill="none" stroke="#FF6D00" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+</div>
+<div class="chips-wrapper">
+<div class="chips-track" id="folderChips">
+<div class="chip active" onclick="selectChip('folder',0)">全部</div>
+<div class="chip" onclick="selectChip('folder',1)">会议纪要</div>
+<div class="chip" onclick="selectChip('folder',2)">工作</div>
+<div class="chip" onclick="selectChip('folder',3)">读后感</div>
+<div class="chip" onclick="selectChip('folder',4)">生活点滴</div>
+</div>
+<div class="chips-track hidden" id="collectionChips">
+<div class="chip active" onclick="selectChip('collection',0)">全部</div>
+<div class="chip" onclick="selectChip('collection',1)">会议纪要</div>
+<div class="chip" onclick="selectChip('collection',2)">通话摘要</div>
+<div class="chip" onclick="selectChip('collection',3)">每日简报</div>
+<div class="chip" onclick="selectChip('collection',4)">Q2 规划</div>
+</div>
+</div>
+</div>
+
+<!-- AI Insight Banner (only in collection mode) -->
+<div class="ai-insight" id="aiInsight">
+<div class="ai-insight-header">
+<div class="ai-insight-icon">
+<svg viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#7C4DFF" opacity="0.9"/></svg>
+</div>
+<span class="ai-insight-title">AI 整理逻辑</span>
+</div>
+<div class="ai-insight-desc">根据笔记内容语义自动归类，将包含会议议题、参会人、决议事项的笔记聚合到此合集</div>
+</div>
+
+<!-- Note List - Folder View -->
+<div class="note-list" id="folderNotes">
+<div class="note-card">
+<div style="width:44px;height:44px;border-radius:10px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+<span style="font-size:14px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Figma Sans 的创作故事</span>
+</div>
+<div style="font-size:12px;color:#8e8e93;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">品牌革新的深层思考与探索，在我们眼中...</div>
+<div style="font-size:11px;color:#aeaeb2;margin-top:3px">昨天 14:30</div>
+</div>
+</div>
+<div class="note-card">
+<div style="width:44px;height:44px;border-radius:10px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+<span style="font-size:14px;font-weight:600;color:#1a1a1a">雷军：我喜欢并推崇任天堂</span>
+</div>
+<div style="font-size:12px;color:#8e8e93;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">在上一篇《小米逆变思考》系列文章中...</div>
+<div style="font-size:11px;color:#aeaeb2;margin-top:3px">周一 13:50</div>
+</div>
+</div>
+<div class="note-card">
+<div style="width:44px;height:44px;border-radius:10px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+<span style="font-size:14px;font-weight:600;color:#1a1a1a">南夜咖啡馆</span>
+</div>
+<div style="font-size:12px;color:#8e8e93;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">傍晚的街灯出一道温暖的线，在玻璃上...</div>
+<div style="font-size:11px;color:#aeaeb2;margin-top:3px">周一 13:50</div>
+</div>
+</div>
+<div class="note-card">
+<div style="width:44px;height:44px;border-radius:10px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+<span style="font-size:14px;font-weight:600;color:#1a1a1a">生活点滴</span>
+</div>
+<div style="font-size:12px;color:#8e8e93;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">生命是有色彩的，并不是存在的虚幻无聊...</div>
+<div style="font-size:11px;color:#aeaeb2;margin-top:3px">昨天 13:50</div>
+</div>
+</div>
+</div>
+
+<!-- Note List - Collection View -->
+<div class="note-list hidden" id="collectionNotes">
+</div>
+</div>
+</div>
+
+<!-- Side Panel Overlay -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+
+<!-- Side Panel -->
+<div class="panel" id="sidePanel">
+<div class="panel-inner">
+<div class="panel-header">
+<div class="panel-header-left" onclick="closePanel()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+</div>
+<div class="panel-header-right">
+<div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+<div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg></div>
+</div>
+</div>
+
+<div class="panel-scroll">
+<!-- Fixed Items -->
+<div class="panel-fixed">
+<div class="panel-item" onclick="selectPanelItem('all')">
+<div class="panel-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6D00" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></div>
+<span class="panel-item-label">全部内容</span>
+<span class="panel-item-count">36</span>
+</div>
+<div class="panel-item">
+<div class="panel-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="#C7C7CC"/></svg></div>
+<span class="panel-item-label">未分类</span>
+<span class="panel-item-count">43</span>
+</div>
+<div class="panel-item">
+<div class="panel-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2"><polyline points="3 6 5 6 6 3"/><path d="M6 3h12l1 3h2"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></div>
+<span class="panel-item-label">最近删除</span>
+<span class="panel-item-count">25</span>
+</div>
+</div>
+
+<div class="panel-divider"></div>
+
+<!-- Folder Section -->
+<div class="section-label">文件夹</div>
+<div id="folderSection">
+<div class="folder-item" onclick="selectFolder('我的摘录')">
+<div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6D00" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></div>
+<span class="folder-label">我的摘录</span>
+<span class="folder-count">19</span>
+</div>
+<div class="folder-item" onclick="selectFolder('工作日志')">
+<div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6D00" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></div>
+<span class="folder-label">工作日志</span>
+<span class="folder-count">6</span>
+</div>
+<div class="folder-item" onclick="selectFolder('生活感悟')">
+<div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6D00" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></div>
+<span class="folder-label">生活感悟</span>
+<span class="folder-count">27</span>
+</div>
+<div class="folder-item" onclick="selectFolder('读书笔记')">
+<div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6D00" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></div>
+<span class="folder-label">读书笔记</span>
+<span class="folder-count">64</span>
+</div>
+</div>
+
+<div class="panel-divider"></div>
+
+<!-- Collection Section (AI differentiated!) -->
+<div class="section-label" style="display:flex;align-items:center;gap:6px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#7C4DFF" opacity="0.7"/></svg>
+<span style="color:#7C4DFF">AI 合集</span>
+</div>
+<div class="collection-section" id="collectionSection">
+<div class="collection-card ai-shimmer" onclick="selectCollection('会议纪要','根据会议议题、参会人、决议事项自动归类')">
+<div class="collection-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+</div>
+<div class="collection-info">
+<div class="collection-name">会议纪要</div>
+<div class="collection-desc">自动识别会议议题与决议事项</div>
+</div>
+<span class="collection-count">12</span>
+</div>
+<div class="collection-card ai-shimmer" onclick="selectCollection('每日简报','汇总当天新增笔记，提取关键信息生成摘要')">
+<div class="collection-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+</div>
+<div class="collection-info">
+<div class="collection-name">每日简报</div>
+<div class="collection-desc">每天汇总新增笔记，提取关键摘要</div>
+</div>
+<span class="collection-count">7</span>
+</div>
+<div class="collection-card ai-shimmer" onclick="selectCollection('金融简报','追踪金融市场、投资策略相关内容')">
+<div class="collection-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+</div>
+<div class="collection-info">
+<div class="collection-name">金融简报</div>
+<div class="collection-desc">追踪金融市场与投资策略内容</div>
+</div>
+<span class="collection-count">5</span>
+</div>
+<div class="collection-card ai-shimmer" onclick="selectCollection('通话摘要','自动提取通话录音中的关键信息与待办')">
+<div class="collection-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+</div>
+<div class="collection-info">
+<div class="collection-name">通话摘要</div>
+<div class="collection-desc">提取通话录音中的关键信息与待办</div>
+</div>
+<span class="collection-count">9</span>
+</div>
+</div>
+</div>
+
+<!-- Panel Bottom -->
+<div class="panel-bottom" id="panelBottom">
+<div class="switch-btn to-folder" id="switchBtn" onclick="switchMode()">
+<svg viewBox="0 0 24 24" fill="none"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" fill="currentColor" opacity="0.8"/></svg>
+<span id="switchLabel">切换到文件夹</span>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let currentMode = 'collection'; // default to collection view
+let currentCollection = '会议纪要';
+
+const collectionInsights = {
+  '会议纪要': '根据笔记内容语义自动归类，将包含会议议题、参会人、决议事项的笔记聚合到此合集',
+  '每日简报': '每天自动汇总当日新增笔记，提取关键信息并生成结构化摘要',
+  '金融简报': '持续追踪金融市场、投资策略、经济分析相关内容，按时间线整理',
+  '通话摘要': '自动提取通话录音中的关键信息、行动项与待办事项',
+  'Q2 规划': '聚合所有与 Q2 目标、里程碑、进度相关的笔记内容'
+};
+
+const collectionNotes = {
+  '会议纪要': [
+    {title:'Q2 产品规划评审会', desc:'参会人：张三、李四、王五 | 决议：优先推进 AI 笔记功能', time:'今天 10:30', source:'日程 Agent'},
+    {title:'设计评审 - 首页改版', desc:'讨论了三种方案，最终选定方案 B，下周出高保真', time:'昨天 15:00', source:'录音转写'},
+    {title:'周会纪要 - 第12周', desc:'本周完成 3 个需求，下周重点：性能优化、合集功能', time:'3月21日', source:'录音转写'},
+  ],
+  '每日简报': [
+    {title:'2026年3月 每日简报', desc:'今日天气多云转晴 | AQI 65 | 3条待办 | 2条新消息', time:'今天 08:00', source:'AI 生成'},
+    {title:'2026年2月 每日简报', desc:'本月新增笔记 47 篇，AI 整理 23 篇，手动创建 24 篇', time:'2月28日', source:'AI 生成'},
+  ],
+  '金融简报': [
+    {title:'A股周报 - 第12周', desc:'沪指收涨 1.2%，科技板块领涨，关注半导体方向', time:'3月22日', source:'内容聚合'},
+    {title:'美联储议息会议速览', desc:'维持利率不变，鲍威尔暗示年内可能降息两次', time:'3月20日', source:'内容聚合'},
+  ],
+};
+
+function openPanel() {
+  document.getElementById('panelOverlay').classList.add('show');
+  document.getElementById('sidePanel').classList.add('show');
+}
+
+function closePanel() {
+  document.getElementById('panelOverlay').classList.remove('show');
+  document.getElementById('sidePanel').classList.remove('show');
+}
+
+function switchMode() {
+  if (currentMode === 'folder') {
+    currentMode = 'collection';
+    applyCollectionMode();
+  } else {
+    currentMode = 'folder';
+    applyFolderMode();
+  }
+  closePanel();
+}
+
+function applyFolderMode() {
+  // Mode button
+  const btn = document.getElementById('modeBtn');
+  btn.classList.remove('ai-mode');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#FF6D00" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>';
+
+  // Filter bar
+  document.getElementById('filterBar').classList.remove('ai-mode');
+
+  // Chips
+  document.getElementById('folderChips').classList.remove('hidden');
+  document.getElementById('collectionChips').classList.add('hidden');
+
+  // AI Insight
+  document.getElementById('aiInsight').classList.remove('show');
+
+  // Notes
+  document.getElementById('folderNotes').classList.remove('hidden');
+  document.getElementById('collectionNotes').classList.add('hidden');
+
+  // Switch button
+  const switchBtn = document.getElementById('switchBtn');
+  switchBtn.className = 'switch-btn to-collection';
+  document.getElementById('switchLabel').textContent = '切换到 AI 合集';
+  switchBtn.querySelector('svg path').setAttribute('fill', 'currentColor');
+}
+
+function applyCollectionMode() {
+  // Mode button
+  const btn = document.getElementById('modeBtn');
+  btn.classList.add('ai-mode');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#7C4DFF" opacity="0.9"/></svg>';
+
+  // Filter bar
+  document.getElementById('filterBar').classList.add('ai-mode');
+
+  // Chips
+  document.getElementById('folderChips').classList.add('hidden');
+  document.getElementById('collectionChips').classList.remove('hidden');
+
+  // AI Insight
+  const insight = document.getElementById('aiInsight');
+  const name = currentCollection || '会议纪要';
+  insight.querySelector('.ai-insight-desc').textContent = collectionInsights[name] || '根据笔记内容语义自动归类';
+  insight.classList.add('show');
+
+  // Notes
+  document.getElementById('folderNotes').classList.add('hidden');
+  document.getElementById('collectionNotes').classList.remove('hidden');
+  renderCollectionNotes(name);
+
+  // Switch button
+  const switchBtn = document.getElementById('switchBtn');
+  switchBtn.className = 'switch-btn to-folder';
+  document.getElementById('switchLabel').textContent = '切换到文件夹';
+  switchBtn.querySelector('svg path').setAttribute('fill', 'currentColor');
+}
+
+function selectCollection(name, desc) {
+  currentCollection = name;
+  currentMode = 'collection';
+  applyCollectionMode();
+
+  // Update insight
+  document.getElementById('aiInsight').querySelector('.ai-insight-desc').textContent = collectionInsights[name] || desc;
+
+  // Update active chip
+  const chips = document.querySelectorAll('#collectionChips .chip');
+  chips.forEach((c, i) => {
+    c.classList.remove('active');
+    if (c.textContent === name) c.classList.add('active');
+  });
+  if (!Array.from(chips).some(c => c.textContent === name)) {
+    chips[0].classList.add('active');
+  }
+
+  renderCollectionNotes(name);
+  closePanel();
+}
+
+function renderCollectionNotes(name) {
+  const container = document.getElementById('collectionNotes');
+  const notes = collectionNotes[name] || collectionNotes['会议纪要'];
+  container.innerHTML = notes.map(n => `
+    <div class="note-card ai-card" style="cursor:pointer">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#EDE7F6,#D1C4E9);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#7C4DFF" opacity="0.6"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:14px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.title}</span>
+          <span style="font-size:9px;padding:1px 5px;border-radius:3px;background:linear-gradient(135deg,#B388FF,#7C4DFF);color:#fff;font-weight:600;flex-shrink:0;line-height:1.4">AI</span>
+        </div>
+        <div style="font-size:12px;color:#8e8e93;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.desc}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <span style="font-size:11px;color:#aeaeb2">${n.time}</span>
+          <span class="ai-source">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#9575CD" opacity="0.8"/></svg>
+            ${n.source}
+          </span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  container.classList.remove('hidden');
+}
+
+function selectFolder(name) {
+  currentMode = 'folder';
+  applyFolderMode();
+  closePanel();
+}
+
+function selectChip(type, index) {
+  const trackId = type === 'folder' ? 'folderChips' : 'collectionChips';
+  const chips = document.querySelectorAll(`#${trackId} .chip`);
+  chips.forEach(c => c.classList.remove('active'));
+  chips[index].classList.add('active');
+
+  if (type === 'collection' && index > 0) {
+    const name = chips[index].textContent;
+    currentCollection = name;
+    const insight = document.getElementById('aiInsight');
+    insight.querySelector('.ai-insight-desc').textContent = collectionInsights[name] || '根据笔记内容语义自动归类';
+    renderCollectionNotes(name);
+  }
+}
+
+function selectPanelItem(type) {
+  closePanel();
+}
+
+// Default to collection mode on load
+document.addEventListener('DOMContentLoaded', function() {
+  applyCollectionMode();
+});
+</script>
+</body>
+</html>

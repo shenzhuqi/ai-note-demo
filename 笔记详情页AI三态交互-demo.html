@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>笔记详情页AI三态交互 · 可交互Demo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"SF Pro Display","PingFang SC","Helvetica Neue",sans-serif;background:#f0f0f5;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:40px 16px 80px;min-height:100vh}
+.demo-wrap{display:flex;gap:32px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.state-block{text-align:center}
+.state-title{font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+.state-sub{font-size:11px;color:#999;margin-bottom:12px}
+/* Phone frame */
+.phone{width:375px;height:812px;background:#fff;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 4px 40px rgba(0,0,0,0.1),0 0 0 1px rgba(0,0,0,0.04);cursor:default;user-select:none}
+/* Status bar */
+.status-bar{padding:14px 24px 0;display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:600;color:#1a1a1a;height:54px}
+.status-right{display:flex;align-items:center;gap:4px;font-size:12px;color:#1a1a1a}
+/* Nav bar */
+.nav-bar{padding:4px 16px 8px;display:flex;align-items:center;gap:8px}
+.nav-back{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.nav-back:active{background:rgba(0,0,0,0.04)}
+.nav-title{flex:1;font-size:17px;font-weight:600;color:#1a1a1a}
+.nav-actions{display:flex;gap:12px}
+</style>
+</head>
+<body>
+<div class="page-header-top" style="position:fixed;top:0;left:0;right:0;text-align:center;padding:12px;background:#fff;z-index:100;border-bottom:1px solid #eee">
+<div style="font-size:16px;font-weight:700;color:#1a1a1a">笔记详情页 · AI对话框三态交互</div>
+<div style="font-size:12px;color:#999;margin-top:2px">点击底部入口切换状态 · 浅色模式 · 可交互</div>
+</div>
+<div class="demo-wrap" style="margin-top:48px">
+
+<!-- ==================== 状态1: 收起态 ==================== -->
+<div class="state-block">
+<div class="state-title">收起态</div>
+<div class="state-sub">底部药丸 · 不遮挡阅读</div>
+<div class="phone" id="phone1">
+<div class="status-bar"><span>9:41</span><div class="status-right"><span>5G</span><span>📶</span><span style="font-size:14px">🔋</span></div></div>
+<div class="nav-bar">
+<div class="nav-back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="nav-title">产品需求讨论会</div>
+<div class="nav-actions">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+</div>
+</div>
+<!-- Note content -->
+<div style="padding:0 20px;overflow-y:auto;height:600px" class="note-content">
+<div style="font-size:12px;color:#999;margin-bottom:12px">9/26 10:29 | 398字 | 来自MiClaw</div>
+<!-- Audio bar -->
+<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f7f7fa;border-radius:12px;margin-bottom:16px">
+<div style="width:32px;height:32px;border-radius:50%;background:#FF6A00;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="8,5 19,12 8,19"/></svg>
+</div>
+<div style="flex:1">
+<div style="font-size:11px;color:#999">00:07 <span style="color:#ccc">/ 07:32</span></div>
+<div style="height:24px;display:flex;align-items:center;gap:1px;margin-top:2px" id="waveform1"></div>
+</div>
+</div>
+<!-- AI Summary -->
+<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><span style="font-size:14px">✨</span><span style="font-size:14px;font-weight:600;color:#1a1a1a">AI总结</span></div>
+<div style="font-size:14px;line-height:1.75;color:#444;margin-bottom:20px">由于项目进度不断变化，我们需要重新审视项目计划以确保我们能够有效地应对由于项目计划以确保我们能够有效地应对由于项目...</div>
+<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><span style="font-size:14px">🎯</span><span style="font-size:14px;font-weight:600;color:#1a1a1a">会议目的：</span></div>
+<div style="font-size:14px;line-height:1.75;color:#444;margin-bottom:20px">宣贯设计部在AI转敏捷交付后的新流程，明确设计主导需求的交付机制、时间节点及跨部门协作规则，确保设计需求不被遗漏并顺利纳入敏捷迭代。</div>
+<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><span style="font-size:14px">🤝</span><span style="font-size:14px;font-weight:600;color:#1a1a1a">会议共识：</span></div>
+<div style="font-size:14px;line-height:1.75;color:#444">
+<div style="margin-bottom:6px">• 设计部独立建立敏捷需求交付流程，与产品线并行但分工清晰，避免设计需求被遗漏。</div>
+<div style="margin-bottom:6px">• 所有设计发起的需求需通过"一句话需求清单"登记，并按新流程推进。</div>
+<div style="margin-bottom:6px">• 需求管理平台为唯一入口，所有设计需求由设计同学自行录入。</div>
+<div style="margin-bottom:6px">• 铁三角已共识且资源明确的需求可直接登记，无需重复 LCS 报备。</div>
+<div style="margin-bottom:6px">• 设计走查纳入 DoD 标准，未通过走查的需求不可上线。</div>
+</div>
+</div>
+
+<!-- 收起态：底部药丸 -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:8px 16px 34px;background:linear-gradient(transparent,#fff 30%)">
+<div style="display:flex;justify-content:center">
+<div id="pill1" style="display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e8e8ee;border-radius:100px;padding:10px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);cursor:pointer;transition:all 0.2s" onclick="showState('expanded')">
+<div style="position:relative">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6A00" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+</div>
+<span style="font-size:13px;color:#666;font-weight:400">对这篇笔记说点什么</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" style="margin-left:4px"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ==================== 状态2: 展开态 ==================== -->
+<div class="state-block">
+<div class="state-title">展开态</div>
+<div class="state-sub">底部轻量面板 · 正文几乎不被遮挡</div>
+<div class="phone" id="phone2">
+<div class="status-bar"><span>9:41</span><div class="status-right"><span>5G</span><span>📶</span><span style="font-size:14px">🔋</span></div></div>
+<div class="nav-bar">
+<div class="nav-back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="nav-title">产品需求讨论会</div>
+</div>
+<!-- Note content (visible top portion - more space now) -->
+<div style="padding:0 20px;height:580px;overflow:hidden">
+<div style="font-size:12px;color:#999;margin-bottom:12px">9/26 10:29 | 398字 | 来自MiClaw</div>
+<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f7f7fa;border-radius:12px;margin-bottom:16px">
+<div style="width:32px;height:32px;border-radius:50%;background:#FF6A00;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="8,5 19,12 8,19"/></svg>
+</div>
+<div style="flex:1">
+<div style="font-size:11px;color:#999">00:07 / 07:32</div>
+<div style="height:3px;background:#e8e8ee;border-radius:2px;margin-top:4px"><div style="width:35%;height:100%;background:#FF6A00;border-radius:2px"></div></div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><span style="font-size:14px">✨</span><span style="font-size:14px;font-weight:600;color:#1a1a1a">AI总结</span></div>
+<div style="font-size:14px;line-height:1.75;color:#444;margin-bottom:20px">由于项目进度不断变化，我们需要重新审视项目计划以确保我们能够有效地应对由于项目计划以确保我们能够有效地应对由于项目...</div>
+<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><span style="font-size:14px">🎯</span><span style="font-size:14px;font-weight:600;color:#1a1a1a">会议目的：</span></div>
+<div style="font-size:14px;line-height:1.75;color:#444;margin-bottom:20px">宣贯设计部在AI转敏捷交付后的新流程，明确设计主导需求的交付机制、时间节点及跨部门协作规则，确保设计需求不被遗漏并顺利纳入敏捷迭代。</div>
+<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><span style="font-size:14px">🤝</span><span style="font-size:14px;font-weight:600;color:#1a1a1a">会议共识：</span></div>
+<div style="font-size:14px;line-height:1.75;color:#444">
+<div style="margin-bottom:6px">• 设计部独立建立敏捷需求交付流程，与产品线并行但分工清晰，避免设计需求被遗漏。</div>
+<div style="margin-bottom:6px">• 所有设计发起的需求需通过"一句话需求清单"登记，并按新流程推进。</div>
+<div style="margin-bottom:6px">• 需求管理平台为唯一入口，所有设计需求由设计同学自行录入。</div>
+</div>
+</div>
+
+<!-- 展开态：底部精简面板 - 只有chips和输入框 -->
+<div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.08);border-top:1px solid #eee">
+<!-- Handle -->
+<div style="display:flex;justify-content:center;padding:8px 0 2px;cursor:pointer" onclick="showState('collapsed')">
+<div style="width:36px;height:4px;border-radius:2px;background:#ddd"></div>
+</div>
+<!-- Dynamic chips -->
+<div style="padding:8px 20px 10px;display:flex;gap:8px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none">
+<div style="font-size:12px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0">提取待办</div>
+<div style="font-size:12px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0">补充风险点</div>
+<div style="font-size:12px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0">改简洁</div>
+<div style="font-size:12px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0">翻译成英文</div>
+</div>
+<!-- Input bar -->
+<div style="padding:4px 16px 30px;display:flex;gap:8px;align-items:center">
+<div id="plus-btn-exp" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#f7f7fa;position:relative" onclick="toggleAllChips('exp')">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div style="flex:1;background:#f7f7fa;border-radius:20px;padding:10px 16px;font-size:13px;color:#bbb">对这篇笔记说点什么...</div>
+<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#FF6A00,#FF8C33);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+</div>
+</div>
+<!-- All chips panel (hidden by default) -->
+<div id="all-chips-exp" style="display:none;padding:0 16px 12px">
+<div style="font-size:11px;font-weight:600;color:#999;margin-bottom:6px">内容提取</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">总结要点</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">创建思维导图</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">提取待办</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">提取日程</div>
+</div>
+<div style="font-size:11px;font-weight:600;color:#999;margin-bottom:6px">文本润色</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">校对全文</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">改简洁</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">续写补充</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">改成正式语气</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">翻译</div>
+</div>
+<div style="font-size:11px;font-weight:600;color:#999;margin-bottom:6px">笔记模板</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">会议纪要</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">课堂笔记</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">对话访谈</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">脑暴纪要</div>
+</div>
+</div>
+<div class="state-block">
+<div class="state-title">全屏态</div>
+<div class="state-sub">占屏幕88% · 完整对话历史</div>
+<div class="phone" id="phone3">
+<div class="status-bar"><span>9:41</span><div class="status-right"><span>5G</span><span>📶</span><span style="font-size:14px">🔋</span></div></div>
+<!-- Tiny note peek -->
+<div style="padding:6px 20px 0">
+<div style="font-size:12px;color:#999;display:flex;align-items:center;gap:4px">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+<span>产品需求讨论会</span>
+<span style="color:#ccc">·</span>
+<span>398字</span>
+</div>
+</div>
+<!-- Full screen panel -->
+<div style="position:absolute;bottom:0;left:0;right:0;top:80px;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.08);display:flex;flex-direction:column;border-top:1px solid #eee">
+<!-- Handle -->
+<div style="display:flex;justify-content:center;padding:8px 0 4px;cursor:pointer" onclick="showState('expanded')">
+<div style="width:36px;height:4px;border-radius:2px;background:#ddd"></div>
+</div>
+<!-- Panel header -->
+<div style="padding:4px 20px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f5">
+<div style="display:flex;align-items:center;gap:6px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6A00" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+<span style="font-size:15px;font-weight:600;color:#1a1a1a">AI 助手</span>
+</div>
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.06);padding:3px 8px;border-radius:4px">基于当前笔记</span>
+<div style="cursor:pointer" onclick="showState('expanded')">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+</div>
+</div>
+</div>
+
+<!-- Chat history -->
+<div style="flex:1;padding:16px 20px;overflow-y:auto">
+<!-- AI greeting -->
+<div style="display:flex;gap:8px;margin-bottom:16px">
+<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF6A00,#FF8C33);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+</div>
+<div style="background:#f7f7fa;border-radius:4px 14px 14px 14px;padding:10px 14px;max-width:280px">
+<div style="font-size:13px;color:#444;line-height:1.65">这篇会议纪要有 5 条共识，你想了解或修改什么？</div>
+</div>
+</div>
+<!-- User message -->
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+<div style="background:#FF6A00;border-radius:14px 4px 14px 14px;padding:10px 14px;max-width:260px">
+<div style="font-size:13px;color:#fff;line-height:1.65">帮我提取这篇纪要里的待办事项</div>
+</div>
+</div>
+<!-- AI response: 操作卡片 -->
+<div style="display:flex;gap:8px;margin-bottom:16px">
+<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF6A00,#FF8C33);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+</div>
+<div style="flex:1;max-width:280px">
+<div style="font-size:13px;color:#444;line-height:1.65;margin-bottom:8px">检测到 3 条待办：</div>
+<!-- Todo card -->
+<div style="background:#f7f7fa;border-radius:12px;padding:12px 14px;border:1px solid #eee">
+<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0f0f5">
+<div style="width:18px;height:18px;border-radius:4px;border:1.5px solid #d0d0d0;flex-shrink:0;margin-top:1px;cursor:pointer"></div>
+<div>
+<div style="font-size:13px;color:#1a1a1a;line-height:1.5">输出首页信息架构终稿</div>
+<div style="font-size:11px;color:#999;margin-top:2px">负责人：张明 · 截止：本周五</div>
+</div>
+</div>
+<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0f0f5">
+<div style="width:18px;height:18px;border-radius:4px;border:1.5px solid #d0d0d0;flex-shrink:0;margin-top:1px;cursor:pointer"></div>
+<div>
+<div style="font-size:13px;color:#1a1a1a;line-height:1.5">确认排序算法逻辑</div>
+<div style="font-size:11px;color:#999;margin-top:2px">负责人：李响 · 截止：下周三</div>
+</div>
+</div>
+<div style="display:flex;align-items:flex-start;gap:8px">
+<div style="width:18px;height:18px;border-radius:4px;border:1.5px solid #d0d0d0;flex-shrink:0;margin-top:1px;cursor:pointer"></div>
+<div>
+<div style="font-size:13px;color:#1a1a1a;line-height:1.5">设计走查标准文档</div>
+<div style="font-size:11px;color:#999;margin-top:2px">负责人：王芳 · 截止：下周五</div>
+</div>
+</div>
+<!-- Action buttons -->
+<div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f5">
+<div style="flex:1;text-align:center;font-size:12px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:8px;border-radius:8px;cursor:pointer">插入笔记</div>
+<div style="flex:1;text-align:center;font-size:12px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:8px;border-radius:8px;cursor:pointer">同步到待办</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- User message 2 -->
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+<div style="background:#FF6A00;border-radius:14px 4px 14px 14px;padding:10px 14px;max-width:260px">
+<div style="font-size:13px;color:#fff;line-height:1.65">把第二条共识改简洁一点</div>
+</div>
+</div>
+<!-- AI response: Before/After card -->
+<div style="display:flex;gap:8px;margin-bottom:16px">
+<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF6A00,#FF8C33);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+</div>
+<div style="flex:1;max-width:280px">
+<div style="font-size:13px;color:#444;line-height:1.65;margin-bottom:8px">已精简第 2 条共识：</div>
+<!-- Diff card -->
+<div style="background:#f7f7fa;border-radius:12px;padding:12px 14px;border:1px solid #eee">
+<div style="margin-bottom:8px">
+<div style="font-size:10px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">修改前</div>
+<div style="font-size:12px;color:#999;line-height:1.6;text-decoration:line-through">所有设计发起的需求需通过"一句话需求清单"登记，并按新流程推进。</div>
+</div>
+<div style="height:1px;background:#eee;margin:8px 0"></div>
+<div>
+<div style="font-size:10px;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">修改后</div>
+<div style="font-size:13px;color:#1a1a1a;line-height:1.6">设计需求统一走"一句话需求清单"登记。</div>
+</div>
+<!-- Action -->
+<div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f5">
+<div style="flex:1;text-align:center;font-size:12px;color:#999;background:#fff;border:1px solid #e5e5e5;padding:8px;border-radius:8px;cursor:pointer">撤销</div>
+<div style="flex:1;text-align:center;font-size:12px;color:#fff;background:#FF6A00;padding:8px;border-radius:8px;cursor:pointer">应用修改</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Input bar -->
+<div style="padding:8px 16px 30px;border-top:1px solid #f0f0f5;display:flex;gap:8px;align-items:center">
+<div id="plus-btn-full" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#f7f7fa;position:relative" onclick="toggleAllChips('full')">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div style="flex:1;background:#f7f7fa;border-radius:20px;padding:10px 16px;font-size:13px;color:#bbb">对这篇笔记说点什么...</div>
+<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#FF6A00,#FF8C33);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+</div>
+</div>
+<!-- All chips panel (hidden by default) -->
+<div id="all-chips-full" style="display:none;padding:0 16px 12px">
+<div style="font-size:11px;font-weight:600;color:#999;margin-bottom:6px">内容提取</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">总结要点</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">创建思维导图</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">提取待办</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">提取日程</div>
+</div>
+<div style="font-size:11px;font-weight:600;color:#999;margin-bottom:6px">文本润色</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">校对全文</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">改简洁</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">续写补充</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">改成正式语气</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">翻译</div>
+</div>
+<div style="font-size:11px;font-weight:600;color:#999;margin-bottom:6px">笔记模板</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">会议纪要</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">课堂笔记</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">对话访谈</div>
+<div style="font-size:11px;color:#FF6A00;background:rgba(255,106,0,0.05);border:1px solid rgba(255,106,0,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">脑暴纪要</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end demo-wrap -->
+
+<!-- Waveform generator -->
+<script>
+function genWaveform(containerId) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  for (let i = 0; i < 50; i++) {
+    const bar = document.createElement('div');
+    const h = Math.random() * 16 + 4;
+    bar.style.cssText = `width:2px;height:${h}px;background:#d0d0d0;border-radius:1px;flex-shrink:0`;
+    c.appendChild(bar);
+  }
+}
+genWaveform('waveform1');
+</script>
+
+<script>
+function toggleAllChips(id) {
+  const panel = document.getElementById('all-chips-' + id);
+  const btn = document.getElementById('plus-btn-' + id);
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    btn.style.background = '#FF6A00';
+    btn.querySelector('svg').setAttribute('stroke', '#fff');
+    btn.style.transform = 'rotate(45deg)';
+    btn.style.transition = 'transform 0.2s, background 0.2s';
+  } else {
+    panel.style.display = 'none';
+    btn.style.background = '#f7f7fa';
+    btn.querySelector('svg').setAttribute('stroke', '#999');
+    btn.style.transform = 'rotate(0deg)';
+  }
+}
+</script>
+
+<!-- State descriptions -->
+<div style="max-width:1200px;margin:40px auto 0;padding:0 16px">
+<div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04)">
+<div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:16px">三态设计说明</div>
+<table style="width:100%;border-collapse:collapse;font-size:13px">
+<thead>
+<tr style="border-bottom:2px solid #f0f0f5">
+<th style="text-align:left;padding:10px 12px;color:#999;font-weight:500">状态</th>
+<th style="text-align:left;padding:10px 12px;color:#999;font-weight:500">视觉形态</th>
+<th style="text-align:left;padding:10px 12px;color:#999;font-weight:500">功能</th>
+<th style="text-align:left;padding:10px 12px;color:#999;font-weight:500">切换方式</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-bottom:1px solid #f7f7fa">
+<td style="padding:10px 12px;color:#1a1a1a;font-weight:500">收起态</td>
+<td style="padding:10px 12px;color:#666">底部药丸，52px高</td>
+<td style="padding:10px 12px;color:#666">麦克风 + "对这篇笔记说点什么"</td>
+<td style="padding:10px 12px;color:#666">点击展开</td>
+</tr>
+<tr style="border-bottom:1px solid #f7f7fa">
+<td style="padding:10px 12px;color:#1a1a1a;font-weight:500">展开态</td>
+<td style="padding:10px 12px;color:#666">底部轻量浮层，自适应高度</td>
+<td style="padding:10px 12px;color:#666">动态chips + 输入栏</td>
+<td style="padding:10px 12px;color:#666">输入后进入全屏 / 下拉收起</td>
+</tr>
+<tr>
+<td style="padding:10px 12px;color:#1a1a1a;font-weight:500">全屏态</td>
+<td style="padding:10px 12px;color:#666">占屏幕88%</td>
+<td style="padding:10px 12px;color:#666">完整对话历史 + 操作卡片</td>
+<td style="padding:10px 12px;color:#666">下拉回展开态</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Key design points -->
+<div style="max-width:1200px;margin:20px auto 0;padding:0 16px">
+<div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04)">
+<div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:16px">设计要点</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div style="background:#f7f7fa;border-radius:10px;padding:14px">
+<div style="font-size:12px;font-weight:600;color:#FF6A00;margin-bottom:4px">药丸文案</div>
+<div style="font-size:12px;color:#666;line-height:1.6">"对这篇笔记说点什么" 强化上下文感，不是通用聊天</div>
+</div>
+<div style="background:#f7f7fa;border-radius:10px;padding:14px">
+<div style="font-size:12px;font-weight:600;color:#FF6A00;margin-bottom:4px">动态 Chips</div>
+<div style="font-size:12px;color:#666;line-height:1.6">根据笔记类型动态推荐，会议纪要→提取待办/补充风险点</div>
+</div>
+<div style="background:#f7f7fa;border-radius:10px;padding:14px">
+<div style="font-size:12px;font-weight:600;color:#FF6A00;margin-bottom:4px">操作卡片</div>
+<div style="font-size:12px;color:#666;line-height:1.6">AI回复不是聊天气泡，是可直接操作的结果卡片（待办/Diff）</div>
+</div>
+<div style="background:#f7f7fa;border-radius:10px;padding:14px">
+<div style="font-size:12px;font-weight:600;color:#FF6A00;margin-bottom:4px">正文可见</div>
+<div style="font-size:12px;color:#666;line-height:1.6">展开态保留上半部分正文，用户边看正文边对话</div>
+</div>
+</div>
+</div>
+</div>
+
+</body>
+</html>

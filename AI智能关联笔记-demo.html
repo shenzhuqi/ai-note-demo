@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 智能关联笔记 · 全链路交互 Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'PingFang SC', 'SF Pro Display', sans-serif; background: #f0f0f5; color: #1a1a1a; }
+
+  /* 页面头部 */
+  .page-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
+  .page-header h1 { font-size: 17px; font-weight: 600; }
+  .page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+  /* Tab 切换 */
+  .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #eee; padding: 0 12px; position: sticky; top: 61px; z-index: 10; }
+  .tab { padding: 12px 14px; font-size: 13px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
+  .tab.active { color: #FF6900; border-bottom-color: #FF6900; font-weight: 600; }
+
+  .scene-panel { display: none; padding: 16px; }
+  .scene-panel.active { display: block; }
+  .scene-desc { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; color: #555; }
+  .scene-desc strong { color: #1a1a1a; }
+
+  /* 手机壳 */
+  .phone-wrap { display: flex; justify-content: center; padding: 8px 0 24px; }
+  .phone-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .phone-label { font-size: 12px; color: #999; font-weight: 500; }
+  .phone { width: 375px; height: 780px; background: #1a1a1a; border-radius: 40px; padding: 10px; box-shadow: 0 16px 48px rgba(0,0,0,.25); position: relative; }
+  .phone-screen { width: 100%; height: 100%; background: #fff; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+  /* 状态栏 */
+  .status-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+  .status-bar .time { font-size: 14px; font-weight: 600; }
+  .status-bar .icons { font-size: 12px; color: #333; }
+
+  /* ===== 首页样式 ===== */
+  .home-top { display: flex; align-items: center; justify-content: flex-end; padding: 0 20px 4px; gap: 16px; flex-shrink: 0; }
+  .home-top .icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #333; cursor: pointer; }
+  .home-title { padding: 4px 20px 12px; font-size: 26px; font-weight: 700; flex-shrink: 0; }
+  .home-search { margin: 0 16px 12px; background: #f5f5f5; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #999; flex-shrink: 0; cursor: pointer; }
+  .folder-bar { display: flex; gap: 8px; padding: 0 16px 12px; overflow-x: auto; flex-shrink: 0; }
+  .folder-bar::-webkit-scrollbar { display: none; }
+  .folder-chip { padding: 6px 14px; border-radius: 18px; font-size: 12px; white-space: nowrap; cursor: pointer; background: #f5f5f5; color: #666; flex-shrink: 0; }
+  .folder-chip.active { background: #FF6900; color: #fff; font-weight: 600; }
+
+  /* 今日相关卡片 */
+  .today-section { padding: 0 16px 8px; }
+  .today-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .today-header .label { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .today-header .ai-spark { font-size: 14px; }
+  .today-card { background: linear-gradient(135deg, #faf5ff 0%, #fef3e8 100%); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: all .15s; border: 1px solid #f0e8ff; }
+  .today-card:active { transform: scale(.98); }
+  .today-card .card-icon { font-size: 20px; margin-bottom: 6px; }
+  .today-card .card-text { font-size: 13px; color: #333; line-height: 1.6; }
+  .today-card .card-text .highlight { color: #7C3AED; font-weight: 600; }
+  .today-card .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .today-card .card-tag { font-size: 11px; color: #9333EA; background: #f3e8ff; padding: 2px 8px; border-radius: 4px; }
+  .today-card .card-action { font-size: 11px; color: #9333EA; font-weight: 500; }
+
+  /* 笔记列表 */
+  .note-list { flex: 1; overflow-y: auto; padding: 0 16px; }
+  .note-card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: background .15s; }
+  .note-card:active { background: #f8f8f8; }
+  .note-card-title { font-size: 15px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .note-card-preview { font-size: 13px; color: #666; line-height: 1.5; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .note-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11px; color: #999; }
+  .ai-badge-inline { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c); font-size: 8px; color: #fff; font-weight: 700; }
+
+  /* 底部栏 */
+  .home-bottom { height: 64px; background: #fff; border-top: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: center; gap: 40px; flex-shrink: 0; padding-bottom: 4px; }
+  .btn-circle { width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #333; background: #f5f5f5; }
+  .btn-record { width: 56px; height: 56px; border-radius: 28px; background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; box-shadow: 0 4px 16px rgba(168,85,247,.3); }
+
+  /* ===== 详情页样式 ===== */
+  .detail-nav { height: 48px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+  .detail-nav .back { font-size: 22px; color: #333; cursor: pointer; }
+  .detail-nav .actions { display: flex; gap: 16px; font-size: 16px; color: #666; }
+  .detail-title { padding: 14px 16px 6px; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+  .detail-time { padding: 0 16px 10px; font-size: 12px; color: #999; flex-shrink: 0; }
+  .detail-body { flex: 1; overflow-y: auto; padding: 8px 16px 16px; font-size: 14px; line-height: 1.8; color: #333; }
+  .detail-body p { margin-bottom: 8px; }
+  .detail-body h3 { font-size: 15px; font-weight: 600; margin: 14px 0 6px; color: #1a1a1a; }
+  .detail-body ul { padding-left: 18px; margin-bottom: 8px; }
+  .detail-body li { margin-bottom: 4px; font-size: 13px; }
+  .detail-body .decision-block { background: #EBF5FF; border-left: 3px solid #2B7DE9; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 8px 0; font-size: 13px; line-height: 1.6; }
+  .detail-body .audio-bar { background: #f8f8f8; border-radius: 10px; padding: 10px 14px; margin: 8px 0; display: flex; align-items: center; gap: 10px; }
+  .detail-body .audio-bar .play { width: 32px; height: 32px; background: #FF6900; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; flex-shrink: 0; }
+  .detail-body .audio-bar .info { font-size: 12px; color: #666; }
+
+  /* ===== 关联笔记区域 ===== */
+  .related-section { border-top: 1px solid #f0f0f0; padding: 14px 16px 8px; }
+  .related-header { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+  .related-header .text { font-size: 13px; font-weight: 500; color: #999; }
+
+  .related-card { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: all .15s; }
+  .related-card:last-child { border-bottom: none; }
+  .related-card:active { opacity: .7; }
+  .related-card .rel-content { flex: 1; min-width: 0; }
+  .related-card .rel-title { font-size: 14px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .related-card .rel-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+  .related-card .rel-reason { display: inline-flex; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; }
+  .related-card .rel-time { font-size: 11px; color: #bbb; }
+  .related-card .arrow { color: #ccc; font-size: 14px; flex-shrink: 0; margin-left: 8px; }
+
+  .reason-person { background: #FEF3C7; color: #B45309; }
+  .reason-project { background: #EBF5FF; color: #2B7DE9; }
+  .reason-topic { background: #F0EBFF; color: #7C3AED; }
+  .reason-time { background: #E8F8EE; color: #16A34A; }
+  .reason-todo { background: #FFF1F2; color: #E11D48; }
+
+  /* 底部AI输入 */
+  .ai-input-bar { height: 52px; background: #fff; border-top: 1px solid #f0f0f0; display: flex; align-items: center; padding: 0 16px; gap: 10px; flex-shrink: 0; }
+  .ai-input-bar .input { flex: 1; background: #f5f5f5; border-radius: 20px; padding: 8px 14px; font-size: 13px; color: #999; }
+  .ai-input-bar .mic { font-size: 18px; color: #FF6900; }
+
+  /* 双屏布局 */
+  .dual-phone { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; padding: 8px 0 24px; }
+
+  /* 流程步骤 */
+  .flow-steps { display: flex; align-items: center; justify-content: center; gap: 0; margin: 16px 0; flex-wrap: wrap; }
+  .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #fff; border-radius: 10px; font-size: 12px; color: #555; }
+  .flow-step .num { width: 22px; height: 22px; border-radius: 11px; background: #FF6900; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .flow-arrow { font-size: 16px; color: #ccc; padding: 0 4px; }
+
+  /* 动画 */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-in { animation: fadeInUp .4s ease-out both; }
+  .delay-1 { animation-delay: .15s; }
+  .delay-2 { animation-delay: .3s; }
+  .delay-3 { animation-delay: .45s; }
+
+  @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(147,51,234,.15); } 50% { box-shadow: 0 0 0 6px rgba(147,51,234,.08); } }
+  .pulse { animation: pulse-glow 2s ease-in-out infinite; }
+
+  /* 提示气泡 */
+  .tooltip { position: absolute; background: #1a1a1a; color: #fff; font-size: 11px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; z-index: 20; pointer-events: none; }
+  .tooltip::after { content: ''; position: absolute; border: 5px solid transparent; }
+  .tooltip.top::after { top: 100%; left: 50%; transform: translateX(-50%); border-top-color: #1a1a1a; }
+  .tooltip.left::after { top: 50%; right: -10px; transform: translateY(-50%); border-left-color: #1a1a1a; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>AI 智能关联笔记 · 全链路交互 Demo</h1>
+  <p>P1 两个呈现位置：笔记详情页底部关联推荐 + 首页今日相关</p>
+</div>
+
+<div class="tab-bar" id="tabBar">
+  <div class="tab active" onclick="switchTab(0)">场景一：首页今日相关</div>
+  <div class="tab" onclick="switchTab(1)">场景二：详情页关联推荐</div>
+  <div class="tab" onclick="switchTab(2)">全链路串联</div>
+</div>
+
+<!-- ===== 场景一：首页今日相关 ===== -->
+<div class="scene-panel active" id="panel-0">
+  <div class="scene-desc">
+    <strong>首页「今日相关」</strong><br>
+    触发条件：最近 24 小时内新增/更新的笔记，与已有笔记产生了高置信度关联<br>
+    展示规则：每天最多 1 条关联提示，点击跳转到新笔记详情页（底部展示关联笔记）<br>
+    无关联时：不展示此卡片
+  </div>
+
+  <div class="phone-wrap">
+    <div class="phone-col">
+      <div class="phone-label">首页 · 今日相关卡片</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span class="time">09:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">🔍 搜索笔记</div>
+        <div class="folder-bar">
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip">会议纪要</div>
+          <div class="folder-chip">灵感</div>
+          <div class="folder-chip">项目</div>
+        </div>
+
+        <!-- 今日相关区域 -->
+        <div class="today-section">
+          <div class="today-header">
+            <span class="ai-spark">✨</span>
+            <span class="label">今日相关</span>
+          </div>
+          <!-- AI 关联提示卡片 -->
+          <div class="today-card animate-in pulse" onclick="showDetailFromHome()">
+            <div class="card-icon">💡</div>
+            <div class="card-text">
+              昨天的灵感 <span class="highlight">「语音交互的未来形态」</span> 和 <span class="highlight">「首页改版评审会」</span> 笔记有关联
+            </div>
+            <div class="card-footer">
+              <span class="card-tag">AI 发现关联</span>
+              <span class="card-action">点击查看 →</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 笔记列表 -->
+        <div class="note-list">
+          <div class="note-card">
+            <div class="note-card-title">语音交互的未来形态</div>
+            <div class="note-card-preview">突然想到，语音输入不应该只是"说话变文字"，而是应该理解用户的意图，自动整理成结构化内容…</div>
+            <div class="note-card-meta"><span>昨天 23:15</span><span style="margin-left:auto">💡 灵感</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-title">首页改版评审会纪要</div>
+            <div class="note-card-preview">参会人：张三、李四、王五。讨论了三个议题：卡片流 vs 信息流、合集入口优化、AI推荐算法…</div>
+            <div class="note-card-meta">
+              <span>昨天 15:30</span>
+              <span class="ai-badge-inline">AI</span>
+              <span style="margin-left:auto">🔊 45:20</span>
+            </div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-title">Q2 产品路线图</div>
+            <div class="note-card-preview">MiClaw 集成 P0、文件理解 P1、语义搜索 P1、智能关联 P2…</div>
+            <div class="note-card-meta"><span>4月15日</span></div>
+          </div>
+          <div class="note-card">
+            <div class="note-card-title">录音转写准确率优化方案</div>
+            <div class="note-card-preview">当前准确率 85%，主要问题是专有名词识别错误。方案：接入自定义词库…</div>
+            <div class="note-card-meta"><span>4月14日</span></div>
+          </div>
+        </div>
+
+        <div class="home-bottom">
+          <div class="btn-circle">✏️</div>
+          <div class="btn-record">🎙</div>
+          <div class="btn-circle">➕</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 场景二：详情页关联推荐 ===== -->
+<div class="scene-panel" id="panel-1">
+  <div class="scene-desc">
+    <strong>笔记详情页底部 · AI 关联推荐</strong><br>
+    位置：笔记正文结束后，底部独立区域<br>
+    展示规则：最多 3 条，标注关联原因标签 + 笔记标题 + 时间，无关联时不展示<br>
+    置信度门槛：只展示高置信度关联，宁可不展示也不展示弱关联
+  </div>
+
+  <div class="phone-wrap">
+    <div class="phone-col">
+      <div class="phone-label">笔记详情页 · 底部关联推荐</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span class="time">09:36</span><span class="icons">📶 🔋</span></div>
+        <div class="detail-nav">
+          <span class="back">‹</span>
+          <span class="actions">
+            <span>↗</span>
+            <span>⋮</span>
+          </span>
+        </div>
+        <div class="detail-title">首页改版评审会纪要</div>
+        <div class="detail-time">2026-04-16 15:30 · 🔊 录音 45:20</div>
+
+        <div class="detail-body" id="detailBody1">
+          <div class="audio-bar">
+            <div class="play">▶</div>
+            <div class="info">
+              <div style="font-weight:500;color:#333">录音回放</div>
+              <div>45:20 · 点击定位到原文</div>
+            </div>
+          </div>
+
+          <h3>📋 会议概要</h3>
+          <p>参会人：张三、李四、王五、赵六</p>
+          <p>本次评审会讨论了笔记首页改版的三个核心议题。</p>
+
+          <h3>📌 议题一：卡片流 vs 信息流</h3>
+          <p>设计出了两版方案。经过讨论，决定采用 A 方案（保留卡片流），理由是用户已习惯卡片流的操作方式。</p>
+          <div class="decision-block">✅ 决策：采用 A 方案（卡片流），在此基础上优化合集入口为横滑卡片</div>
+
+          <h3>📌 议题二：AI 推荐算法</h3>
+          <p>当前 AI 推荐 tab 点击率 12%，远低于预期 30%。李四分析原因是推荐内容和用户最近编辑的笔记关联度不够。</p>
+          <div class="decision-block">✅ 决策：本周内出混合排序方案（编辑时间 + 内容相似度）</div>
+
+          <h3>📌 议题三：语音交互方向</h3>
+          <p>王五提出语音输入不应只做转写，应该理解意图并自动整理。张三认为这个方向和首页改版的 AI 推荐有协同效应。</p>
+
+          <h3>📝 待办</h3>
+          <ul>
+            <li>李四：周五前出 AI 推荐排序方案</li>
+            <li>王五：两周内完成自定义词库接入</li>
+            <li>赵六：下周一前完成合集入口设计稿</li>
+          </ul>
+
+          <!-- ===== 关联笔记区域 ===== -->
+          <div class="related-section" style="margin: 16px -16px 0;">
+            <div class="related-header">
+              <span class="text">关联笔记</span>
+            </div>
+
+            <div class="related-card animate-in" onclick="alert('跳转到：语音交互的未来形态')">
+              <div class="rel-content">
+                <div class="rel-title">语音交互的未来形态</div>
+                <div class="rel-meta"><span class="rel-reason reason-topic">都在讨论语音交互</span><span class="rel-time">昨天 23:15</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+
+            <div class="related-card animate-in delay-1" onclick="alert('跳转到：Q2 产品路线图')">
+              <div class="rel-content">
+                <div class="rel-title">Q2 产品路线图</div>
+                <div class="rel-meta"><span class="rel-reason reason-project">同属首页改版项目</span><span class="rel-time">4月15日</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+
+            <div class="related-card animate-in delay-2" onclick="alert('跳转到：上周首页改版讨论')">
+              <div class="rel-content">
+                <div class="rel-title">首页改版讨论（第一轮）</div>
+                <div class="rel-meta"><span class="rel-reason reason-time">上一次评审会</span><span class="rel-time">4月8日</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-input-bar">
+          <div class="input">问问 AI...</div>
+          <span class="mic">🎤</span>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 场景三：全链路串联 ===== -->
+<div class="scene-panel" id="panel-2">
+  <div class="scene-desc">
+    <strong>全链路串联</strong> · 从首页到详情页的完整交互流程<br>
+    用户在首页看到「今日相关」→ 点击进入灵感笔记详情页 → 底部看到关联笔记 → 点击跳转到会议纪要 → 会议纪要底部又有关联笔记<br>
+    <strong>核心体验：</strong>笔记之间形成关联网络，用户自然地在笔记间跳转发现
+  </div>
+
+  <!-- 流程步骤 -->
+  <div class="flow-steps">
+    <div class="flow-step"><span class="num">1</span>首页看到今日相关</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step"><span class="num">2</span>点击进入灵感笔记</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step"><span class="num">3</span>底部发现关联笔记</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step"><span class="num">4</span>跳转到会议纪要</div>
+  </div>
+
+  <div class="dual-phone">
+    <!-- 左：灵感笔记详情页 -->
+    <div class="phone-col">
+      <div class="phone-label">步骤 2-3：灵感笔记详情页</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span class="time">09:37</span><span class="icons">📶 🔋</span></div>
+        <div class="detail-nav">
+          <span class="back" onclick="alert('返回首页')">‹</span>
+          <span class="actions"><span>↗</span><span>⋮</span></span>
+        </div>
+        <div class="detail-title">语音交互的未来形态</div>
+        <div class="detail-time">2026-04-16 23:15 · 💡 灵感</div>
+
+        <div class="detail-body">
+          <p>突然想到，语音输入不应该只是"说话变文字"。</p>
+          <p>现在的语音输入体验：用户说一段话 → 转成文字 → 用户自己整理格式。这中间丢失了太多信息——语气、停顿、重点强调，全都变成了平铺直叙的文字。</p>
+          <p>理想的语音输入应该是：</p>
+          <ul>
+            <li>理解用户在说什么类型的内容（会议讨论？灵感记录？待办事项？）</li>
+            <li>自动选择合适的整理模板</li>
+            <li>保留语音中的重点标记（用户说"重点是"后面的内容自动加粗）</li>
+            <li>识别行动项并自动提取待办</li>
+          </ul>
+          <p>这个方向和王五在评审会上说的一致——语音不只是输入方式，是内容理解的入口。</p>
+          <p>下一步：整理成正式的产品方案，和首页改版的 AI 推荐结合起来看。</p>
+
+          <!-- 关联笔记 -->
+          <div class="related-section" style="margin: 16px -16px 0;">
+            <div class="related-header">
+              <span class="text">关联笔记</span>
+            </div>
+
+            <div class="related-card animate-in" onclick="alert('跳转到：首页改版评审会纪要')">
+              <div class="rel-content">
+                <div class="rel-title">首页改版评审会纪要</div>
+                <div class="rel-meta"><span class="rel-reason reason-topic">都在讨论语音交互</span><span class="rel-time">昨天 15:30</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+
+            <div class="related-card animate-in delay-1" onclick="alert('跳转到：语音输入笔记竞品参考')">
+              <div class="rel-content">
+                <div class="rel-title">语音输入笔记竞品参考</div>
+                <div class="rel-meta"><span class="rel-reason reason-topic">都在讨论语音输入</span><span class="rel-time">4月10日</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+
+            <div class="related-card animate-in delay-2" onclick="alert('跳转到：AI笔记语音指令方案')">
+              <div class="rel-content">
+                <div class="rel-title">AI 笔记语音指令方案</div>
+                <div class="rel-meta"><span class="rel-reason reason-project">同属AI笔记项目</span><span class="rel-time">4月12日</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-input-bar">
+          <div class="input">问问 AI...</div>
+          <span class="mic">🎤</span>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 右：会议纪要详情页 -->
+    <div class="phone-col">
+      <div class="phone-label">步骤 4：跳转到会议纪要</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span class="time">09:38</span><span class="icons">📶 🔋</span></div>
+        <div class="detail-nav">
+          <span class="back" onclick="alert('返回灵感笔记')">‹</span>
+          <span class="actions"><span>↗</span><span>⋮</span></span>
+        </div>
+        <div class="detail-title">首页改版评审会纪要</div>
+        <div class="detail-time">2026-04-16 15:30 · 🔊 录音 45:20</div>
+
+        <div class="detail-body">
+          <div class="audio-bar">
+            <div class="play">▶</div>
+            <div class="info">
+              <div style="font-weight:500;color:#333">录音回放</div>
+              <div>45:20 · 点击定位到原文</div>
+            </div>
+          </div>
+
+          <h3>📋 会议概要</h3>
+          <p>参会人：张三、李四、王五、赵六</p>
+
+          <h3>📌 议题一：卡片流 vs 信息流</h3>
+          <div class="decision-block">✅ 决策：采用 A 方案（卡片流），优化合集入口为横滑卡片</div>
+
+          <h3>📌 议题二：AI 推荐算法</h3>
+          <div class="decision-block">✅ 决策：本周内出混合排序方案</div>
+
+          <h3>📌 议题三：语音交互方向</h3>
+          <p>王五提出语音输入应理解意图并自动整理。张三认为和 AI 推荐有协同效应。</p>
+
+          <h3>📝 待办</h3>
+          <ul>
+            <li>李四：周五前出排序方案</li>
+            <li>王五：两周内完成词库接入</li>
+            <li>赵六：下周一出设计稿</li>
+          </ul>
+
+          <!-- 关联笔记 -->
+          <div class="related-section" style="margin: 16px -16px 0;">
+            <div class="related-header">
+              <span class="text">关联笔记</span>
+            </div>
+
+            <div class="related-card animate-in" style="background:#faf5ff;">
+              <div class="rel-content">
+                <div class="rel-title" style="color:#7C3AED">语音交互的未来形态</div>
+                <div class="rel-meta"><span class="rel-reason reason-topic">都在讨论语音交互</span><span style="font-size:10px;color:#9333EA;font-weight:500">← 你刚看过</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+
+            <div class="related-card animate-in delay-1">
+              <div class="rel-content">
+                <div class="rel-title">首页改版讨论（第一轮）</div>
+                <div class="rel-meta"><span class="rel-reason reason-time">上一次评审会</span><span class="rel-time">4月8日</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+
+            <div class="related-card animate-in delay-2">
+              <div class="rel-content">
+                <div class="rel-title">Q2 产品路线图</div>
+                <div class="rel-meta"><span class="rel-reason reason-project">同属首页改版项目</span><span class="rel-time">4月15日</span></div>
+              </div>
+              <span class="arrow">›</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-input-bar">
+          <div class="input">问问 AI...</div>
+          <span class="mic">🎤</span>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('.scene-panel').forEach((p, i) => {
+    p.classList.toggle('active', i === idx);
+  });
+}
+
+function showDetailFromHome() {
+  // 模拟从首页点击今日相关跳转到详情页
+  switchTab(1);
+}
+</script>
+
+</body>
+</html>

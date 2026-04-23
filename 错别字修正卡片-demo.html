@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>错别字修正卡片 · 交互 Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC",sans-serif;background:#f0f0f5;color:#1a1a1a;padding:32px 16px 60px}
+h1{font-size:16px;font-weight:600;text-align:center;margin-bottom:4px}
+p.sub{font-size:12px;color:#999;text-align:center;margin-bottom:24px}
+
+/* Phone shell */
+.phone-row{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.phone-label{font-size:11px;color:#999;font-weight:500}
+.phone{width:340px;height:680px;background:#f7f7f7;border-radius:40px;overflow:hidden;position:relative;box-shadow:0 4px 32px rgba(0,0,0,0.1),0 0 0 1px rgba(0,0,0,0.04)}
+.sb{padding:12px 20px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#1a1a1a;height:40px}
+.nav{padding:2px 14px 6px;display:flex;align-items:center;gap:8px;background:#fff;border-bottom:1px solid #f0f0f5}
+.nav .back{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.nav .title{flex:1;font-size:15px;font-weight:600;color:#1a1a1a}
+
+/* Chat area */
+.chat{flex:1;padding:12px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;height:480px}
+.msg-user{align-self:flex-end;background:#FF6900;color:#fff;padding:9px 13px;border-radius:16px 16px 3px 16px;font-size:13px;max-width:75%;line-height:1.5}
+.msg-hint{font-size:11px;color:#bbb;text-align:center;padding:2px 0}
+
+/* Card */
+.card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.06)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1px solid #f5f5f5}
+.card-head .ct{font-size:14px;font-weight:600;color:#1a1a1a}
+.card-head .badge{font-size:11px;color:#FF6900;background:rgba(255,105,0,0.08);padding:3px 8px;border-radius:100px}
+.card-head .btn-all{font-size:12px;color:#fff;background:#FF6900;padding:5px 12px;border-radius:100px;cursor:pointer;border:none;font-family:inherit}
+
+/* Error list */
+.err-list{padding:8px 0}
+.err-item{display:flex;align-items:center;padding:9px 14px;gap:10px;border-bottom:1px solid #f7f7f7;transition:background 0.15s}
+.err-item:last-child{border-bottom:none}
+.err-item.done{opacity:0.4}
+.err-item.skipped{opacity:0.4}
+.err-num{font-size:10px;color:#bbb;width:20px;flex-shrink:0}
+.err-content{flex:1;min-width:0}
+.err-wrong{font-size:13px;color:#ef4444;font-weight:500}
+.err-arrow{font-size:11px;color:#bbb;margin:0 4px}
+.err-right{font-size:13px;color:#1a1a1a;font-weight:500}
+.err-ctx{font-size:11px;color:#999;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.err-actions{display:flex;gap:5px;flex-shrink:0}
+.btn-fix{font-size:11px;color:#fff;background:#FF6900;padding:5px 10px;border-radius:8px;cursor:pointer;border:none;font-family:inherit;white-space:nowrap}
+.btn-skip{font-size:11px;color:#999;background:#f0f0f0;padding:5px 10px;border-radius:8px;cursor:pointer;border:none;font-family:inherit;white-space:nowrap}
+.err-done-tag{font-size:10px;color:#22c55e;background:rgba(34,197,94,0.08);padding:3px 7px;border-radius:6px;flex-shrink:0}
+.err-skip-tag{font-size:10px;color:#bbb;background:#f5f5f5;padding:3px 7px;border-radius:6px;flex-shrink:0}
+
+/* Card footer */
+.card-foot{padding:10px 14px 12px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f5f5f5}
+.card-foot .progress{font-size:11px;color:#bbb}
+.card-foot .btn-done{font-size:12px;color:#fff;background:#FF6900;padding:6px 16px;border-radius:100px;cursor:pointer;border:none;font-family:inherit}
+.card-foot .btn-done:disabled{background:#e0e0e0;color:#bbb;cursor:default}
+
+/* Bottom bar */
+.bottom-bar{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #f0f0f5;padding:8px 14px 24px}
+.chips-row{display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px;scrollbar-width:none}
+.chips-row::-webkit-scrollbar{display:none}
+.chip{font-size:11px;color:#FF6900;background:rgba(255,105,0,0.05);border:1px solid rgba(255,105,0,0.15);padding:6px 10px;border-radius:8px;white-space:nowrap;flex-shrink:0}
+.input-row{display:flex;gap:6px;align-items:center}
+.input-row .plus{width:28px;height:28px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.input-row .field{flex:1;background:#f0f0f5;border-radius:18px;padding:8px 14px;font-size:12px;color:#bbb}
+.input-row .mic{width:28px;height:28px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* Completed state */
+.card-complete{background:#fff;border-radius:14px;padding:16px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06);display:flex;align-items:center;gap:10px}
+.card-complete .icon{width:32px;height:32px;border-radius:50%;background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-complete .info .t{font-size:13px;font-weight:600;color:#1a1a1a}
+.card-complete .info .s{font-size:11px;color:#999;margin-top:2px}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn 0.2s ease-out}
+</style>
+</head>
+<body>
+<h1>错别字修正卡片 · 逐一确认交互</h1>
+<p class="sub">3 种状态：初始列表 · 逐一处理中 · 全部完成</p>
+
+<div class="phone-row">
+
+<!-- ===== 状态1: 初始列表 ===== -->
+<div class="phone-wrap">
+<div class="phone-label">① 初始态 · 全部待处理</div>
+<div class="phone">
+<div style="background:#fff">
+<div class="sb"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="nav">
+<div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+</div>
+<div class="chat">
+<div class="msg-user">修正错别字</div>
+<div class="msg-hint">思考完成 ∨</div>
+<div class="card">
+<div class="card-head">
+<div class="ct">错别字检查</div>
+<div style="display:flex;align-items:center;gap:8px">
+<div class="badge">共 3 处</div>
+<button class="btn-all">一键修正</button>
+</div>
+</div>
+<div class="err-list">
+<div class="err-item">
+<div class="err-num">1</div>
+<div class="err-content">
+<div><span class="err-wrong">帐号</span><span class="err-arrow">→</span><span class="err-right">账号</span></div>
+<div class="err-ctx">...登录小米<span style="color:#ef4444">帐号</span>后即可同步...</div>
+</div>
+<div class="err-actions"><button class="btn-fix">修正</button><button class="btn-skip">跳过</button></div>
+</div>
+<div class="err-item">
+<div class="err-num">2</div>
+<div class="err-content">
+<div><span class="err-wrong">座右铭</span><span class="err-arrow">→</span><span class="err-right">座右铭</span></div>
+<div class="err-ctx">...他的<span style="color:#ef4444">座右铭</span>是认真做事...</div>
+</div>
+<div class="err-actions"><button class="btn-fix">修正</button><button class="btn-skip">跳过</button></div>
+</div>
+<div class="err-item">
+<div class="err-num">3</div>
+<div class="err-content">
+<div><span class="err-wrong">即使</span><span class="err-arrow">→</span><span class="err-right">即使</span></div>
+<div class="err-ctx">...<span style="color:#ef4444">即使</span>遇到困难也要坚持...</div>
+</div>
+<div class="err-actions"><button class="btn-fix">修正</button><button class="btn-skip">跳过</button></div>
+</div>
+</div>
+<div class="card-foot">
+<div class="progress">0 / 3 已处理</div>
+<button class="btn-done" disabled>完成</button>
+</div>
+</div>
+</div>
+<div class="bottom-bar">
+<div class="chips-row"><div class="chip">✓ 修正错别字</div><div class="chip">改简洁</div><div class="chip">总结要点</div></div>
+<div class="input-row">
+<div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+<div class="field">发消息或按住说话</div>
+<div class="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ===== 状态2: 处理中 ===== -->
+<div class="phone-wrap">
+<div class="phone-label">② 处理中 · 已修正1个，跳过1个</div>
+<div class="phone">
+<div style="background:#fff">
+<div class="sb"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="nav">
+<div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+</div>
+<div class="chat">
+<div class="msg-user">修正错别字</div>
+<div class="msg-hint">思考完成 ∨</div>
+<div class="card">
+<div class="card-head">
+<div class="ct">错别字检查</div>
+<div style="display:flex;align-items:center;gap:8px">
+<div class="badge">共 3 处</div>
+<button class="btn-all">一键修正剩余</button>
+</div>
+</div>
+<div class="err-list">
+<!-- 已修正 -->
+<div class="err-item done">
+<div class="err-num">1</div>
+<div class="err-content">
+<div><span class="err-wrong">帐号</span><span class="err-arrow">→</span><span class="err-right">账号</span></div>
+<div class="err-ctx">...登录小米<span style="color:#ef4444">帐号</span>后即可同步...</div>
+</div>
+<div class="err-done-tag">已修正</div>
+</div>
+<!-- 已跳过 -->
+<div class="err-item skipped">
+<div class="err-num">2</div>
+<div class="err-content">
+<div><span class="err-wrong">座右铭</span><span class="err-arrow">→</span><span class="err-right">座右铭</span></div>
+<div class="err-ctx">...他的<span style="color:#ef4444">座右铭</span>是认真做事...</div>
+</div>
+<div class="err-skip-tag">已跳过</div>
+</div>
+<!-- 待处理（高亮当前） -->
+<div class="err-item" style="background:#fffaf7">
+<div class="err-num" style="color:#FF6900;font-weight:600">3</div>
+<div class="err-content">
+<div><span class="err-wrong">即使</span><span class="err-arrow">→</span><span class="err-right">即使</span></div>
+<div class="err-ctx">...<span style="color:#ef4444">即使</span>遇到困难也要坚持...</div>
+</div>
+<div class="err-actions"><button class="btn-fix">修正</button><button class="btn-skip">跳过</button></div>
+</div>
+</div>
+<div class="card-foot">
+<div class="progress">2 / 3 已处理</div>
+<button class="btn-done">完成</button>
+</div>
+</div>
+</div>
+<div class="bottom-bar">
+<div class="chips-row"><div class="chip">✓ 修正错别字</div><div class="chip">改简洁</div><div class="chip">总结要点</div></div>
+<div class="input-row">
+<div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+<div class="field">发消息或按住说话</div>
+<div class="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ===== 状态3: 全部完成 ===== -->
+<div class="phone-wrap">
+<div class="phone-label">③ 完成态 · 卡片收起为摘要</div>
+<div class="phone">
+<div style="background:#fff">
+<div class="sb"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="nav">
+<div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+</div>
+<div class="chat">
+<div class="msg-user">修正错别字</div>
+<div class="msg-hint">思考完成 ∨</div>
+<!-- 完成后收起为摘要卡片 -->
+<div class="card-complete fade-in">
+<div class="icon">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+</div>
+<div class="info">
+<div class="t">错别字修正完成</div>
+<div class="s">修正 2 处 · 跳过 1 处</div>
+</div>
+<div style="margin-left:auto;font-size:11px;color:#bbb;cursor:pointer">查看详情</div>
+</div>
+<!-- 后续对话可继续 -->
+<div style="background:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+<div style="font-size:13px;color:#555;line-height:1.6">还有什么需要调整的吗？</div>
+</div>
+</div>
+<div class="bottom-bar">
+<div class="chips-row"><div class="chip">改简洁</div><div class="chip">总结要点</div><div class="chip">续写补充</div></div>
+<div class="input-row">
+<div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+<div class="field">发消息或按住说话</div>
+<div class="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg></div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end phone-row -->
+
+<!-- Design notes -->
+<div style="max-width:1100px;margin:32px auto 0;background:#fff;border-radius:14px;padding:20px 24px;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">交互逻辑说明</div>
+<table style="width:100%;border-collapse:collapse;font-size:12px">
+<thead><tr style="border-bottom:2px solid #f0f0f5"><th style="text-align:left;padding:8px;color:#999;font-weight:500">操作</th><th style="text-align:left;padding:8px;color:#999;font-weight:500">效果</th></tr></thead>
+<tbody>
+<tr style="border-bottom:1px solid #f7f7f7"><td style="padding:8px;color:#1a1a1a">点击"修正"</td><td style="padding:8px;color:#666">该条变为"已修正"灰显，笔记正文对应位置实时替换，自动滚动到下一条</td></tr>
+<tr style="border-bottom:1px solid #f7f7f7"><td style="padding:8px;color:#1a1a1a">点击"跳过"</td><td style="padding:8px;color:#666">该条变为"已跳过"灰显，不修改笔记，自动滚动到下一条</td></tr>
+<tr style="border-bottom:1px solid #f7f7f7"><td style="padding:8px;color:#1a1a1a">点击"一键修正"</td><td style="padding:8px;color:#666">所有待处理条目批量修正，直接进入完成态</td></tr>
+<tr style="border-bottom:1px solid #f7f7f7"><td style="padding:8px;color:#1a1a1a">点击"完成"</td><td style="padding:8px;color:#666">卡片收起为摘要行（修正N处·跳过N处），对话可继续</td></tr>
+<tr><td style="padding:8px;color:#1a1a1a">点击"查看详情"</td><td style="padding:8px;color:#666">摘要行展开回到完整列表，可撤销已修正的条目</td></tr>
+</tbody>
+</table>
+</div>
+
+</body>
+</html>

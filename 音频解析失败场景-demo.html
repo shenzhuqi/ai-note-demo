@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音频解析失败场景 · Demo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, 'PingFang SC', sans-serif; background: #f0f0f5; color: #1a1a1a; }
+
+.page-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
+.page-header h1 { font-size: 17px; font-weight: 600; }
+.page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+.tab-bar { display: flex; background: #fff; border-bottom: 1px solid #eee; padding: 0 16px; position: sticky; top: 61px; z-index: 10; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tab { padding: 12px 14px; font-size: 13px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; flex-shrink: 0; }
+.tab.active { color: #FF6900; border-bottom-color: #FF6900; font-weight: 600; }
+
+.scene-panel { display: none; padding: 20px 16px; max-width: 480px; margin: 0 auto; }
+.scene-panel.active { display: block; }
+.section-label { font-size: 11px; color: #aaa; margin-bottom: 8px; letter-spacing: .5px; font-weight: 500; text-transform: uppercase; }
+.cards-group { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+
+/* 音频卡片基础 */
+.audio-card { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.player-row { display: flex; align-items: center; gap: 10px; }
+.play-btn { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; border: 1.5px solid #ccc; background: #fff; }
+.play-btn svg { width: 14px; height: 14px; }
+.time { font-size: 12px; color: #999; flex-shrink: 0; }
+.waveform { flex: 1; height: 24px; display: flex; align-items: center; gap: 1.5px; overflow: hidden; }
+.waveform .bar { width: 2px; background: #d0d0d0; border-radius: 1px; flex-shrink: 0; }
+
+/* 状态标签 */
+.status-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.tag-error { background: #fce4ec; color: #c62828; }
+.tag-warning { background: #fff3e0; color: #e65100; }
+.tag-info { background: #e3f2fd; color: #1565c0; }
+.tag-success { background: #e8f5e9; color: #2e7d32; }
+
+/* 错误状态区域 */
+.error-area { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
+.error-msg { font-size: 13px; color: #999; display: flex; align-items: center; gap: 6px; }
+.error-msg.red { color: #c62828; }
+.error-msg.yellow { color: #e65100; }
+.error-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+.retry-btn { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 6px 14px; border-radius: 16px; border: 1px solid #FF6900; background: #fff; color: #FF6900; font-size: 12px; cursor: pointer; transition: all .15s; }
+.retry-btn:hover { background: #FFF3E8; }
+.retry-btn:active { background: #FFE8D5; }
+
+/* 降级内容区 */
+.fallback-area { margin-top: 12px; padding: 10px 12px; background: #fafafa; border-radius: 8px; border-left: 3px solid #FF6900; }
+.fallback-label { font-size: 11px; color: #FF6900; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.fallback-text { font-size: 13px; color: #333; line-height: 1.7; }
+
+/* 进度条 */
+.progress-track { width: 100%; height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; margin: 8px 0 4px; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+.progress-fill.orange { background: linear-gradient(90deg, #ff6b35, #ff4b2b); }
+.progress-fill.paused { background: #ccc; }
+
+/* 转录中标签 */
+.transcribe-header { display: flex; align-items: center; justify-content: space-between; }
+.transcribe-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; }
+.dot { width: 6px; height: 6px; border-radius: 50%; }
+.dot.pulse { background: #ff6b35; animation: pulse 1.5s ease-in-out infinite; }
+.dot.paused { background: #ccc; }
+.dot.error { background: #c62828; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+.transcribe-percent { font-size: 13px; font-weight: 600; }
+.transcribe-eta { font-size: 11px; color: #bbb; }
+
+/* spinner */
+.spinner { width: 14px; height: 14px; border: 1.5px solid #e0e0e0; border-top-color: #999; border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 提示条 */
+.tip-bar { padding: 10px 12px; border-radius: 8px; font-size: 12px; line-height: 1.5; display: flex; align-items: flex-start; gap: 6px; margin-top: 10px; }
+.tip-bar.warn { background: #FFF8E1; color: #F57F17; }
+.tip-bar.info { background: #E3F2FD; color: #1565C0; }
+.tip-bar.error { background: #FFEBEE; color: #C62828; }
+.tip-bar .tip-icon { flex-shrink: 0; margin-top: 1px; }
+
+/* 笔记正文模拟 */
+.note-ctx { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.note-text { font-size: 15px; line-height: 1.85; color: #333; margin-bottom: 14px; }
+.note-divider { height: 1px; background: #f0f0f0; margin: 14px 0; }
+
+/* 恢复提示条 */
+.recover-bar { background: #FFF3E8; border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.recover-bar .recover-icon { width: 32px; height: 32px; border-radius: 8px; background: #FF6900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.recover-bar .recover-text { flex: 1; }
+.recover-bar .recover-title { font-size: 13px; font-weight: 600; color: #333; }
+.recover-bar .recover-sub { font-size: 12px; color: #999; margin-top: 2px; }
+.recover-bar .recover-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.recover-bar .recover-btn { padding: 6px 12px; border-radius: 14px; font-size: 12px; cursor: pointer; border: none; }
+.recover-bar .btn-primary { background: #FF6900; color: #fff; }
+.recover-bar .btn-ghost { background: transparent; color: #999; }
+
+/* 权限弹窗 */
+.permission-dialog { background: #fff; border-radius: 16px; padding: 24px 20px; box-shadow: 0 8px 32px rgba(0,0,0,.15); max-width: 300px; margin: 0 auto; text-align: center; }
+.permission-dialog .perm-icon { width: 56px; height: 56px; border-radius: 16px; background: #FFEBEE; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+.permission-dialog .perm-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.permission-dialog .perm-desc { font-size: 13px; color: #666; line-height: 1.6; margin-bottom: 20px; }
+.permission-dialog .perm-btn { width: 100%; padding: 12px; border-radius: 22px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; margin-bottom: 8px; }
+.permission-dialog .perm-btn.primary { background: #FF6900; color: #fff; }
+.permission-dialog .perm-btn.secondary { background: #f5f5f5; color: #666; }
+
+/* 通知栏模拟 */
+.notification { background: #fff; border-radius: 12px; padding: 12px 14px; box-shadow: 0 2px 12px rgba(0,0,0,.1); display: flex; align-items: flex-start; gap: 10px; }
+.notification .noti-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.notification .noti-icon.error { background: #FFEBEE; }
+.notification .noti-icon.warn { background: #FFF3E0; }
+.notification .noti-icon.info { background: #E3F2FD; }
+.notification .noti-text { flex: 1; }
+.notification .noti-app { font-size: 11px; color: #999; margin-bottom: 2px; }
+.notification .noti-title { font-size: 13px; font-weight: 600; color: #333; }
+.notification .noti-body { font-size: 12px; color: #666; margin-top: 2px; line-height: 1.5; }
+.notification .noti-time { font-size: 11px; color: #bbb; flex-shrink: 0; }
+
+/* 决策表 */
+.decision-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+.decision-table th { background: #f8f8f8; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #eee; }
+.decision-table td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; color: #333; vertical-align: top; line-height: 1.5; }
+.decision-table tr:last-child td { border-bottom: none; }
+
+/* Toast */
+.toast-demo { background: rgba(0,0,0,.75); color: #fff; font-size: 13px; padding: 8px 16px; border-radius: 20px; display: inline-block; }
+.toast-wrap { text-align: center; margin: 12px 0; display: none; }
+
+/* 降级流程图 */
+.flow-box { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.08); margin-bottom: 16px; }
+.flow-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.flow-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+.flow-node { padding: 6px 12px; border-radius: 8px; font-weight: 500; }
+.flow-node.green { background: #e8f5e9; color: #2e7d32; }
+.flow-node.orange { background: #fff3e0; color: #e65100; }
+.flow-node.red { background: #ffebee; color: #c62828; }
+.flow-node.gray { background: #f5f5f5; color: #666; }
+.flow-arrow { color: #ccc; font-size: 16px; }
+.flow-result { font-size: 12px; color: #999; margin-left: 4px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>音频解析失败场景</h1>
+  <p>录音 → 转录 → AI 整理 → 写入笔记 · 各环节失败状态与恢复方案</p>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab(0)">转录失败</div>
+  <div class="tab" onclick="switchTab(1)">AI整理失败</div>
+  <div class="tab" onclick="switchTab(2)">录音异常</div>
+  <div class="tab" onclick="switchTab(3)">笔记内效果</div>
+  <div class="tab" onclick="switchTab(4)">通知栏</div>
+  <div class="tab" onclick="switchTab(5)">降级策略</div>
+</div>
+
+<!-- Tab 0: 转录失败 -->
+<div class="scene-panel active" id="panel-0">
+
+  <div class="section-label">转录失败 · 点击重试</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div class="player-row">
+        <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+        <span class="time">05:32</span>
+        <div class="waveform" id="w1"></div>
+      </div>
+      <div class="error-area">
+        <div class="error-msg red">
+          <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#c62828" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="9" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".8" fill="#c62828"/></svg>
+          转录失败
+        </div>
+        <button class="retry-btn" onclick="simulateRetry(this)">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 0 1 10.5-4" stroke="#FF6900" stroke-width="1.5" stroke-linecap="round"/><path d="M14 8a6 6 0 0 1-10.5 4" stroke="#FF6900" stroke-width="1.5" stroke-linecap="round"/><polyline points="12,1 13,4 10,4.5" stroke="#FF6900" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          点击重试
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">网络中断 · 自动恢复</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div class="player-row">
+        <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+        <span class="time">12:45</span>
+        <div class="waveform" id="w2"></div>
+      </div>
+      <div class="error-area">
+        <div class="transcribe-header">
+          <div class="transcribe-label"><span class="dot paused"></span> 转录已暂停</div>
+          <span class="transcribe-percent" style="color:#e65100">47%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill paused" style="width:47%"></div></div>
+        <div class="tip-bar warn">
+          <span class="tip-icon">⚠️</span>
+          <span>网络已断开，恢复后将自动继续转录</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">未检测到语音</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div class="player-row">
+        <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+        <span class="time">00:15</span>
+        <div class="waveform" id="w3"></div>
+      </div>
+      <div class="error-area">
+        <div class="error-msg" style="color:#999">
+          <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#bbb" stroke-width="1.5"/><line x1="5" y1="8" x2="11" y2="8" stroke="#bbb" stroke-width="1.5" stroke-linecap="round"/></svg>
+          未检测到语音内容
+        </div>
+        <button class="retry-btn" onclick="simulateRetry(this)">重新转录</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">噪声过大 · 低质量提示</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div class="player-row">
+        <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+        <span class="time">03:20</span>
+        <div class="waveform" id="w4"></div>
+      </div>
+      <div class="error-area">
+        <div class="tip-bar warn">
+          <span class="tip-icon">⚠️</span>
+          <span>录音环境嘈杂，转录结果可能不准确</span>
+        </div>
+        <div style="margin-top:10px;font-size:13px;color:#333;line-height:1.7">
+          确立设计部独立敏捷交付新流程，规定全量设计需求需由设计师统一录入管理平台……
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">格式不支持</div>
+  <div class="cards-group">
+    <div class="audio-card" style="background:#fafafa;border:1px dashed #ddd">
+      <div class="player-row">
+        <div class="play-btn" style="border-color:#ddd"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#ccc"/></svg></div>
+        <span class="time" style="color:#ccc">--:--</span>
+        <div style="flex:1;font-size:13px;color:#bbb">会议录音.ogg</div>
+      </div>
+      <div class="error-area" style="border-top-color:#eee">
+        <div class="error-msg" style="color:#999">
+          <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#bbb" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="9" stroke="#bbb" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".8" fill="#bbb"/></svg>
+          不支持该音频格式
+        </div>
+        <div style="font-size:11px;color:#ccc;margin-top:6px">支持格式：MP3、M4A、WAV、AAC</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 1: AI整理失败 -->
+<div class="scene-panel" id="panel-1">
+
+  <div class="section-label">AI 整理超时 · 转录文本兜底</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div class="player-row">
+        <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+        <span class="time">08:15</span>
+        <div class="waveform" id="w5"></div>
+      </div>
+      <div class="error-area">
+        <div class="error-msg" style="color:#999">
+          <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#999" stroke-width="1.5"/><path d="M8 5v3l2 1.5" stroke="#999" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          AI 整理超时
+        </div>
+        <button class="retry-btn" onclick="simulateRetry(this)">重新整理</button>
+      </div>
+      <div class="fallback-area">
+        <div class="fallback-label">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="#FF6900" stroke-width="1.5" stroke-linecap="round"/></svg>
+          已为你展示转录文本
+        </div>
+        <div class="fallback-text">今天主要评审语音指令创建笔记这个需求，即用户不用打开笔记 APP，直接对 MiClaw 说一句话就能创建笔记。MiClaw 已在内测，我们需要尽快完成接口对齐……</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">AI 整理失败 · 自动切换模型</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div class="player-row">
+        <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+        <span class="time">15:42</span>
+        <div class="waveform" id="w6"></div>
+      </div>
+      <div class="error-area">
+        <div class="error-msg red">
+          <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#c62828" stroke-width="1.5"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/></svg>
+          AI 整理失败，已尝试切换模型
+        </div>
+        <button class="retry-btn" onclick="simulateRetry(this)">重新整理</button>
+      </div>
+      <div class="fallback-area">
+        <div class="fallback-label">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="#FF6900" stroke-width="1.5" stroke-linecap="round"/></svg>
+          已为你展示转录文本
+        </div>
+        <div class="fallback-text">说话人1：今天主要评审语音指令创建笔记这个需求，即用户不用打开笔记 APP，直接对 MiClaw 说一句话就能创建笔记。<br><br>说话人2：技术上 MiClaw 把用户指令传给我们没有问题。需要确认的是，MiClaw 是直接调笔记的接口，还是中间还有一层。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">转录文本过短 · 不触发 AI 整理</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div class="player-row">
+        <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+        <span class="time">00:08</span>
+        <div class="waveform" id="w7"></div>
+      </div>
+      <div style="margin-top:10px;font-size:13px;color:#333;line-height:1.7">
+        明天下午三点开会，别忘了。
+      </div>
+    </div>
+    <div class="tip-bar info">
+      <span class="tip-icon">💡</span>
+      <span>录音较短，直接展示转录文本，不触发 AI 整理。这不是错误状态，是正常的短录音处理逻辑。</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 2: 录音异常 -->
+<div class="scene-panel" id="panel-2">
+
+  <div class="section-label">麦克风权限被拒</div>
+  <div class="cards-group">
+    <div class="permission-dialog">
+      <div class="perm-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c62828" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/><line x1="1" y1="1" x2="23" y2="23" stroke-width="2"/></svg>
+      </div>
+      <div class="perm-title">需要麦克风权限</div>
+      <div class="perm-desc">录音功能需要使用麦克风，请在系统设置中开启权限</div>
+      <button class="perm-btn primary" onclick="showToast('toast-perm')">去设置</button>
+      <button class="perm-btn secondary">取消</button>
+    </div>
+    <div class="toast-wrap" id="toast-perm"><div class="toast-demo">正在跳转系统设置…</div></div>
+  </div>
+
+  <div class="section-label">存储空间不足</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div style="background:#FFF8E1;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#F57F17;display:flex;align-items:center;gap:6px">
+        <span>⚠️</span> 存储空间不足，录音即将停止
+      </div>
+      <div class="player-row">
+        <div class="play-btn" style="border-color:#FF6900;background:#FF6900">
+          <svg viewBox="0 0 14 14" fill="none"><rect x="4" y="3" width="2.5" height="8" rx="1" fill="#fff"/><rect x="7.5" y="3" width="2.5" height="8" rx="1" fill="#fff"/></svg>
+        </div>
+        <span class="time" style="color:#FF6900">02:47</span>
+        <div class="waveform" id="w8"></div>
+        <span style="font-size:11px;color:#c62828;font-weight:500">REC</span>
+      </div>
+    </div>
+    <div class="tip-bar warn">
+      <span class="tip-icon">💡</span>
+      <span>录音自动保存已录制的 2 分 47 秒内容，已录部分正常进入转录流程</span>
+    </div>
+  </div>
+
+  <div class="section-label">录音意外中断 · 恢复提示</div>
+  <div class="cards-group">
+    <div class="recover-bar">
+      <div class="recover-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+      </div>
+      <div class="recover-text">
+        <div class="recover-title">上次录音未正常结束</div>
+        <div class="recover-sub">已保存 4 分 12 秒的录音</div>
+      </div>
+      <div class="recover-actions">
+        <button class="recover-btn btn-ghost" onclick="showToast('toast-del')">删除</button>
+        <button class="recover-btn btn-primary" onclick="showToast('toast-recover')">继续处理</button>
+      </div>
+    </div>
+    <div class="toast-wrap" id="toast-del"><div class="toast-demo">已删除未完成的录音</div></div>
+    <div class="toast-wrap" id="toast-recover"><div class="toast-demo">正在处理录音…</div></div>
+    <p style="font-size:12px;color:#999;line-height:1.6">用户下次打开笔记 APP 时，顶部出现恢复提示条。点击"继续处理"进入转录流程，点击"删除"丢弃录音。</p>
+  </div>
+
+  <div class="section-label">来电打断 · 暂停恢复</div>
+  <div class="cards-group">
+    <div class="audio-card">
+      <div style="background:#E3F2FD;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#1565C0;display:flex;align-items:center;gap:6px">
+        <span>📞</span> 录音已暂停（来电中），通话结束后可继续
+      </div>
+      <div class="player-row">
+        <div class="play-btn" style="border-color:#1565C0">
+          <svg viewBox="0 0 14 14" fill="none"><rect x="4" y="3" width="2.5" height="8" rx="1" fill="#1565C0"/><rect x="7.5" y="3" width="2.5" height="8" rx="1" fill="#1565C0"/></svg>
+        </div>
+        <span class="time" style="color:#1565C0">06:33</span>
+        <div class="waveform" id="w9"></div>
+        <span style="font-size:11px;color:#1565C0;font-weight:500">已暂停</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 3: 笔记内效果 -->
+<div class="scene-panel" id="panel-3">
+
+  <div class="section-label">语音速记 · 转录失败（仅保留音频）</div>
+  <div class="cards-group">
+    <div class="note-ctx">
+      <div class="note-text" style="color:#999;font-size:13px">2026-03-20 14:00 · 语音速记</div>
+      <div class="audio-card" style="box-shadow:none;border:1px solid #f0f0f0;margin:8px 0">
+        <div class="player-row">
+          <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+          <span class="time">05:32</span>
+          <div class="waveform" id="w10"></div>
+        </div>
+        <div class="error-area">
+          <div class="error-msg red">
+            <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#c62828" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="9" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".8" fill="#c62828"/></svg>
+            转录失败
+          </div>
+          <button class="retry-btn" onclick="simulateRetry(this)">点击重试</button>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">语音速记场景：转录失败后仍创建笔记，正文只有音频播放器 + 失败提示，用户可重试或手动听录音</p>
+  </div>
+
+  <div class="section-label">语音速记 · AI 整理失败（转录文本兜底）</div>
+  <div class="cards-group">
+    <div class="note-ctx">
+      <div class="note-text" style="color:#999;font-size:13px">2026-03-20 14:00 · 语音速记</div>
+      <div class="audio-card" style="box-shadow:none;border:1px solid #f0f0f0;margin:8px 0">
+        <div class="player-row">
+          <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+          <span class="time">05:32</span>
+          <div class="waveform" id="w11"></div>
+        </div>
+        <div class="error-area">
+          <div class="error-msg" style="color:#999;font-size:12px">
+            <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#999" stroke-width="1.5"/><path d="M8 5v3l2 1.5" stroke="#999" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            AI 整理暂时不可用
+            <span style="color:#FF6900;cursor:pointer;margin-left:4px" onclick="simulateRetry(this)">重新整理</span>
+          </div>
+        </div>
+      </div>
+      <div class="note-divider"></div>
+      <div class="note-text" style="font-size:14px;line-height:1.8">
+        今天主要评审语音指令创建笔记这个需求，即用户不用打开笔记 APP，直接对 MiClaw 说一句话就能创建笔记。MiClaw 已在内测，我们需要尽快完成接口对齐。
+        <br><br>
+        当前的问题是，用户要录语音笔记，得先打开笔记 APP，找到录音按钮，点击才能开始录，步骤太多。目标体验是用户走在路上，对手机说"帮我记一下明天下午三点开会"，后台自动创建笔记，不用打开任何界面。
+      </div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">AI 整理失败时，正文展示去口语化的转录文本作为兜底。用户可以直接阅读，也可以点击"重新整理"再试一次</p>
+  </div>
+
+  <div class="section-label">笔记内插入 · 转录失败</div>
+  <div class="cards-group">
+    <div class="note-ctx">
+      <div class="note-text">上周产品评审会的录音和文档都在这里，方便后续回顾。</div>
+      <div class="note-divider"></div>
+      <div class="audio-card" style="box-shadow:none;border:1px solid #f0f0f0;margin:8px 0">
+        <div class="player-row">
+          <div class="play-btn"><svg viewBox="0 0 14 14" fill="none"><polygon points="4,2 12,7 4,12" fill="#999"/></svg></div>
+          <span class="time">23:15</span>
+          <div class="waveform" id="w12"></div>
+        </div>
+        <div class="error-area">
+          <div class="error-msg red">
+            <svg class="error-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#c62828" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="9" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".8" fill="#c62828"/></svg>
+            转录失败，点击重试
+          </div>
+          <button class="retry-btn" onclick="simulateRetry(this)">点击重试</button>
+        </div>
+      </div>
+      <div class="note-divider"></div>
+      <div class="note-text">后续需要补充的内容：竞品对比数据、用户画像分析。</div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">笔记内插入场景：笔记已存在，音频卡片在笔记正文中显示失败状态，不影响笔记其他内容</p>
+  </div>
+</div>
+
+<!-- Tab 4: 通知栏（MiClaw 触发场景） -->
+<div class="scene-panel" id="panel-4">
+
+  <div class="section-label">MiClaw 触发 · 录音失败</div>
+  <div class="cards-group">
+    <div class="notification">
+      <div class="noti-icon error">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c62828" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><line x1="1" y1="1" x2="23" y2="23" stroke-width="2"/></svg>
+      </div>
+      <div class="noti-text">
+        <div class="noti-app">小米笔记</div>
+        <div class="noti-title">录音失败</div>
+        <div class="noti-body">未获得麦克风权限，无法创建语音笔记。点击前往设置。</div>
+      </div>
+      <div class="noti-time">刚刚</div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">用户通过 MiClaw 说"帮我记一下"，但笔记没有麦克风权限时，通过通知栏告知</p>
+  </div>
+
+  <div class="section-label">MiClaw 触发 · 转录失败</div>
+  <div class="cards-group">
+    <div class="notification">
+      <div class="noti-icon warn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+      </div>
+      <div class="noti-text">
+        <div class="noti-app">小米笔记</div>
+        <div class="noti-title">录音转录失败</div>
+        <div class="noti-body">语音速记（5分32秒）转录失败，点击重试</div>
+      </div>
+      <div class="noti-time">2分钟前</div>
+    </div>
+  </div>
+
+  <div class="section-label">MiClaw 触发 · AI 整理失败（降级通知）</div>
+  <div class="cards-group">
+    <div class="notification">
+      <div class="noti-icon info">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="noti-text">
+        <div class="noti-app">小米笔记</div>
+        <div class="noti-title">语音速记已保存</div>
+        <div class="noti-body">录音已转录完成，AI 整理暂时不可用，已为你保存转录文本。点击查看。</div>
+      </div>
+      <div class="noti-time">3分钟前</div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">AI 整理失败时，通知文案不说"失败"，而是告诉用户"已保存转录文本"——强调有什么，而不是缺什么</p>
+  </div>
+
+  <div class="section-label">MiClaw 触发 · 完整成功（对比）</div>
+  <div class="cards-group">
+    <div class="notification">
+      <div class="noti-icon" style="background:#e8f5e9">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="noti-text">
+        <div class="noti-app">小米笔记</div>
+        <div class="noti-title">已为你创建笔记：明日会议提醒</div>
+        <div class="noti-body">明天下午三点开会，已提取日程待确认</div>
+      </div>
+      <div class="noti-time">刚刚</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 5: 降级策略 -->
+<div class="scene-panel" id="panel-5">
+
+  <div class="section-label">逐级降级 · 保住已有成果</div>
+  <div class="cards-group">
+    <div class="flow-box">
+      <div class="flow-title">完整成功</div>
+      <div class="flow-row">
+        <span class="flow-node green">录音 ✓</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node green">转录 ✓</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node green">AI 整理 ✓</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-result">AI 结构化总结 + 原始音频</span>
+      </div>
+    </div>
+
+    <div class="flow-box">
+      <div class="flow-title">AI 整理失败 · 转录文本兜底</div>
+      <div class="flow-row">
+        <span class="flow-node green">录音 ✓</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node green">转录 ✓</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node orange">AI 整理 ✗</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-result">去口语化文本 + 原始音频</span>
+      </div>
+    </div>
+
+    <div class="flow-box">
+      <div class="flow-title">转录失败 · 仅保留音频</div>
+      <div class="flow-row">
+        <span class="flow-node green">录音 ✓</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node red">转录 ✗</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node gray">AI 整理 —</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-result">仅原始音频可播放</span>
+      </div>
+    </div>
+
+    <div class="flow-box">
+      <div class="flow-title">录音失败 · 无内容</div>
+      <div class="flow-row">
+        <span class="flow-node red">录音 ✗</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node gray">转录 —</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node gray">AI 整理 —</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-result">提示失败原因，引导恢复</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">自动重试策略</div>
+  <div class="cards-group">
+    <table class="decision-table">
+      <thead><tr><th>环节</th><th>自动重试</th><th>间隔</th><th>策略</th></tr></thead>
+      <tbody>
+        <tr><td>转录</td><td>1 次</td><td>立即</td><td>相同引擎重试</td></tr>
+        <tr><td>AI 整理</td><td>2 次</td><td>立即</td><td>第 1 次切换备用模型<br>第 2 次相同模型重试</td></tr>
+        <tr><td>笔记保存</td><td>3 次</td><td>1s / 3s / 5s</td><td>指数退避</td></tr>
+        <tr><td>网络请求</td><td>不自动重试</td><td>—</td><td>等网络恢复后自动续传</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#999;margin-top:4px">用户手动点击"重试"不受次数限制</p>
+  </div>
+
+  <div class="section-label">两种录音来源的差异</div>
+  <div class="cards-group">
+    <table class="decision-table">
+      <thead><tr><th>失败环节</th><th>语音速记</th><th>笔记内插入</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>录音失败</td>
+          <td>不创建笔记<br>通知栏 / Toast 告知</td>
+          <td>笔记已存在<br>音频卡片显示失败状态</td>
+        </tr>
+        <tr>
+          <td>转录失败</td>
+          <td>创建笔记<br>正文只有音频播放器</td>
+          <td>音频卡片显示<br>"转录失败，点击重试"</td>
+        </tr>
+        <tr>
+          <td>AI 整理失败</td>
+          <td>创建笔记<br>正文展示去口语化文本</td>
+          <td>音频卡片下方展示文本<br>不弹总结浮窗</td>
+        </tr>
+        <tr>
+          <td style="color:#2e7d32">完整成功</td>
+          <td style="color:#2e7d32">创建笔记<br>按时长规则展示内容</td>
+          <td style="color:#2e7d32">弹出总结浮窗<br>用户选择插入位置</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-label">核心原则</div>
+  <div class="cards-group">
+    <table class="decision-table">
+      <thead><tr><th>原则</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>能保多少保多少</td><td>录音成功就保录音，转录成功就保文本，不因后续环节失败丢弃前面的成果</td></tr>
+        <tr><td>告诉用户有什么</td><td>通知文案强调"已保存转录文本"，不说"AI 整理失败"</td></tr>
+        <tr><td>自动重试用户无感</td><td>第一次失败自动重试，用户看不到；仍失败才展示错误状态</td></tr>
+        <tr><td>手动重试不限次</td><td>用户点击"重试"按钮没有次数限制，想试几次试几次</td></tr>
+        <tr><td>不替用户做主</td><td>不自动删除失败的录音，不自动清理错误状态，让用户决定</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// Tab 切换
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+  document.querySelectorAll('.scene-panel').forEach(function(p, i) { p.classList.toggle('active', i === idx); });
+}
+
+// 生成波形条
+function genWave(id, count) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  for (var i = 0; i < (count || 50); i++) {
+    var bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.height = (Math.random() * 16 + 4) + 'px';
+    el.appendChild(bar);
+  }
+}
+// 初始化所有波形
+for (var i = 1; i <= 12; i++) genWave('w' + i);
+
+// Toast 提示
+function showToast(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 2000);
+}
+
+// 模拟重试
+function simulateRetry(btn) {
+  var orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:1.5px"></span> 重试中…';
+  btn.style.pointerEvents = 'none';
+  setTimeout(function() {
+    btn.innerHTML = orig;
+    btn.style.pointerEvents = '';
+  }, 2000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>语音输入前沿UI设计参考</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"SF Pro Display","PingFang SC","Helvetica Neue",sans-serif;background:#0a0a0a;color:#fff;overflow-x:hidden}
+.page-header{text-align:center;padding:60px 20px 40px}
+.page-header h1{font-size:28px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 0%,#a0a0a0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.page-header p{color:#666;font-size:14px;margin-top:8px}
+.concepts{max-width:1200px;margin:0 auto;padding:0 24px 80px}
+.concept-section{margin-bottom:80px}
+.section-tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:12px}
+.section-title{font-size:22px;font-weight:700;letter-spacing:-0.3px;margin-bottom:6px}
+.section-desc{font-size:14px;color:#777;line-height:1.7;margin-bottom:28px;max-width:640px}
+.phone-frame{width:375px;height:720px;border-radius:44px;overflow:hidden;position:relative;margin:0 auto}
+.phone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#000;border-radius:0 0 20px 20px;z-index:10}
+.phone-time{position:absolute;top:8px;left:32px;font-size:15px;font-weight:600;z-index:11;color:#fff}
+.phone-icons{position:absolute;top:10px;right:28px;display:flex;gap:5px;z-index:11}
+.phone-icons span{display:block;width:16px;height:11px;border:1.5px solid #fff;border-radius:2px;position:relative}
+</style>
+</head>
+<body>
+<div class="page-header">
+<h1>Voice Input · 前沿UI设计参考</h1>
+<p>6种设计方向 — 从录入到笔记生成的全链路交互概念</p>
+</div>
+<div class="concepts">
+
+<!-- ==================== CONCEPT 1: Ambient Orb ==================== -->
+<section class="concept-section">
+<span class="section-tag" style="color:#0af;background:rgba(0,170,255,0.1)">Concept 01</span>
+<h2 class="section-title">Ambient Orb — 环境感知语音球</h2>
+<p class="section-desc">灵感来源：Apple Siri 重设计 + Humane AI Pin。用一个有生命感的光球替代传统麦克风按钮，通过颜色、形态、粒子运动传达录音状态。球体会根据环境音量和说话节奏实时变形，让用户感受到"AI 在认真听"。</p>
+<div class="demo-row" style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap">
+
+<!-- Idle State -->
+<div style="text-align:center">
+<div class="orb-phone" style="width:280px;height:560px;background:#111;border-radius:36px;overflow:hidden;position:relative;border:1px solid #222">
+<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#000;border-radius:0 0 16px 16px;z-index:5"></div>
+<div style="padding:60px 20px 20px;height:100%;display:flex;flex-direction:column">
+<div style="color:#666;font-size:12px;text-align:left;margin-bottom:auto">周四 · 下午 3:24</div>
+<div style="flex:1;display:flex;align-items:center;justify-content:center">
+<div class="orb-idle" style="width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#1a3a5c,#0a1628);box-shadow:0 0 60px rgba(0,100,200,0.15),inset 0 0 30px rgba(0,150,255,0.1);position:relative;cursor:pointer;transition:all 0.5s">
+<div style="position:absolute;inset:0;border-radius:50%;border:1px solid rgba(0,150,255,0.15)"></div>
+<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px">
+<svg viewBox="0 0 24 24" fill="none" stroke="rgba(100,180,255,0.6)" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+</div>
+</div>
+</div>
+<div style="color:#444;font-size:13px;margin-bottom:40px">轻触开始录音</div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">待机态 · 静谧呼吸</div>
+</div>
+
+<!-- Recording State -->
+<div style="text-align:center">
+<div class="orb-phone" style="width:280px;height:560px;background:#111;border-radius:36px;overflow:hidden;position:relative;border:1px solid #222">
+<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#000;border-radius:0 0 16px 16px;z-index:5"></div>
+<div style="padding:60px 20px 20px;height:100%;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="color:#0af;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px">
+<span class="rec-dot" style="width:6px;height:6px;border-radius:50%;background:#0af;animation:pulse-blue 1.5s infinite"></span>
+录音中 · 02:34
+</div>
+<div style="color:#444;font-size:12px">暂停</div>
+</div>
+<!-- Live transcript area -->
+<div style="flex:1;overflow:hidden;position:relative">
+<div style="position:absolute;top:0;left:0;right:0;height:40px;background:linear-gradient(#111,transparent);z-index:2"></div>
+<div style="font-size:15px;line-height:2;color:#555;padding-top:40px">
+<span style="color:#888">我觉得这个方案的核心问题是</span>
+<span style="color:#bbb">用户在录音的时候没有安全感</span>
+<span style="color:#fff;text-shadow:0 0 20px rgba(0,170,255,0.3)">他不知道AI有没有在听</span>
+<span class="typing-cursor" style="display:inline-block;width:2px;height:16px;background:#0af;vertical-align:middle;margin-left:2px;animation:blink 1s infinite"></span>
+</div>
+</div>
+<!-- Orb at bottom -->
+<div style="display:flex;justify-content:center;padding:20px 0 30px">
+<div class="orb-active" style="width:80px;height:80px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#0a4a8a,#0af);box-shadow:0 0 80px rgba(0,170,255,0.4),0 0 160px rgba(0,170,255,0.15);position:relative;animation:orb-breathe 2s ease-in-out infinite">
+<div style="position:absolute;inset:-12px;border-radius:50%;border:1px solid rgba(0,170,255,0.2);animation:ring-expand 2s ease-out infinite"></div>
+<div style="position:absolute;inset:-28px;border-radius:50%;border:1px solid rgba(0,170,255,0.08);animation:ring-expand 2s ease-out infinite 0.5s"></div>
+</div>
+</div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">录音态 · 实时转写流</div>
+</div>
+
+<!-- Processing State -->
+<div style="text-align:center">
+<div class="orb-phone" style="width:280px;height:560px;background:#111;border-radius:36px;overflow:hidden;position:relative;border:1px solid #222">
+<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#000;border-radius:0 0 16px 16px;z-index:5"></div>
+<div style="padding:60px 20px 20px;height:100%;display:flex;flex-direction:column">
+<div style="color:#a78bfa;font-size:12px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:6px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+AI 正在整理笔记...
+</div>
+<div style="flex:1;position:relative">
+<!-- Skeleton cards appearing -->
+<div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.12);border-radius:12px;padding:16px;margin-bottom:12px;animation:card-in 0.6s ease-out">
+<div style="font-size:13px;font-weight:600;color:#a78bfa;margin-bottom:8px">📋 会议纪要</div>
+<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;margin-bottom:6px;width:90%;animation:shimmer 1.5s infinite"></div>
+<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;margin-bottom:6px;width:75%;animation:shimmer 1.5s infinite 0.2s"></div>
+<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;width:60%;animation:shimmer 1.5s infinite 0.4s"></div>
+</div>
+<div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.12);border-radius:12px;padding:16px;margin-bottom:12px;animation:card-in 0.6s ease-out 0.3s both">
+<div style="font-size:13px;font-weight:600;color:#34d399;margin-bottom:8px">✅ 待办事项</div>
+<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;margin-bottom:6px;width:80%;animation:shimmer 1.5s infinite 0.1s"></div>
+<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;width:55%;animation:shimmer 1.5s infinite 0.3s"></div>
+</div>
+<div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.12);border-radius:12px;padding:16px;animation:card-in 0.6s ease-out 0.6s both">
+<div style="font-size:13px;font-weight:600;color:#fbbf24;margin-bottom:8px">💡 关键结论</div>
+<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;margin-bottom:6px;width:85%;animation:shimmer 1.5s infinite 0.2s"></div>
+<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;width:70%;animation:shimmer 1.5s infinite 0.5s"></div>
+</div>
+</div>
+<!-- Progress -->
+<div style="padding:16px 0 30px">
+<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
+<div style="height:100%;width:65%;background:linear-gradient(90deg,#a78bfa,#818cf8);border-radius:2px;animation:progress-move 3s ease-in-out infinite"></div>
+</div>
+<div style="color:#555;font-size:11px;margin-top:8px;text-align:center">正在提炼结构化内容...</div>
+</div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">整理态 · 骨架屏渐现</div>
+</div>
+
+</div>
+</section>
+
+<style>
+@keyframes pulse-blue{0%,100%{opacity:1}50%{opacity:0.3}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes orb-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes ring-expand{0%{transform:scale(0.8);opacity:0.6}100%{transform:scale(1.4);opacity:0}}
+@keyframes shimmer{0%{opacity:0.3}50%{opacity:0.6}100%{opacity:0.3}}
+@keyframes card-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes progress-move{0%{width:30%}50%{width:75%}100%{width:30%}}
+</style>
+</div>
+</body>
+</html>
+@keyframes progress-move{0%{width:30%}50%{width:75%}100%{width:30%}}
+</style>
+
+<!-- ==================== CONCEPT 2: Waveform Canvas ==================== -->
+<section class="concept-section">
+<span class="section-tag" style="color:#34d399;background:rgba(52,211,153,0.1)">Concept 02</span>
+<h2 class="section-title">Waveform Canvas — 波形画布实时转写</h2>
+<p class="section-desc">灵感来源：Otter.ai + Linear 的极简美学。把声波可视化和文字转写融合在同一个画布上，声波不是装饰，而是文字的"来源指示器"——每段文字都从波形中"生长"出来，建立录音和文字的视觉因果关系。</p>
+<div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap">
+
+<div style="text-align:center">
+<div style="width:340px;background:#0d1117;border-radius:20px;overflow:hidden;border:1px solid #1b2332;padding:24px">
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+<div style="display:flex;align-items:center;gap:8px">
+<div style="width:8px;height:8px;border-radius:50%;background:#f43f5e;animation:pulse-blue 1.5s infinite"></div>
+<span style="font-size:13px;color:#e2e8f0;font-weight:500">REC 03:42</span>
+</div>
+<div style="display:flex;gap:8px">
+<div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+</div>
+<div style="width:32px;height:32px;border-radius:8px;background:rgba(244,63,94,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+</div>
+</div>
+</div>
+<!-- Waveform + Text Canvas -->
+<div style="position:relative;min-height:320px">
+<!-- Waveform background -->
+<canvas id="waveCanvas" width="292" height="320" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.3"></canvas>
+<!-- Text overlay -->
+<div style="position:relative;z-index:2;font-size:14px;line-height:2.2">
+<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+<span style="color:#34d399;font-size:11px;font-weight:600;min-width:44px;padding-top:4px">00:12</span>
+<span style="color:#94a3b8">我觉得首页的信息密度太高了，用户第一眼不知道看哪里</span>
+</div>
+<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+<span style="color:#34d399;font-size:11px;font-weight:600;min-width:44px;padding-top:4px">01:05</span>
+<span style="color:#cbd5e1">可以考虑把合集入口做成横滑卡片，减少纵向空间占用</span>
+</div>
+<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+<span style="color:#34d399;font-size:11px;font-weight:600;min-width:44px;padding-top:4px">02:18</span>
+<span style="color:#e2e8f0">另外语音笔记的入口要更明显，现在藏得太深了</span>
+</div>
+<div style="display:flex;align-items:flex-start;gap:8px">
+<span style="color:#34d399;font-size:11px;font-weight:600;min-width:44px;padding-top:4px">03:40</span>
+<span style="color:#fff">我们需要一个全局的悬浮录音按钮<span style="display:inline-block;width:2px;height:14px;background:#34d399;vertical-align:middle;margin-left:2px;animation:blink 1s infinite"></span></span>
+</div>
+</div>
+</div>
+<!-- Bottom bar -->
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid #1b2332;display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;gap:12px">
+<span style="font-size:11px;color:#475569;background:rgba(255,255,255,0.05);padding:4px 10px;border-radius:6px">说话人 1</span>
+<span style="font-size:11px;color:#475569;background:rgba(255,255,255,0.05);padding:4px 10px;border-radius:6px">中文</span>
+</div>
+<span style="font-size:11px;color:#334155">自动保存中</span>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">时间戳锚定 · 波形背景</div>
+</div>
+
+<div style="text-align:center">
+<div style="width:340px;background:#0d1117;border-radius:20px;overflow:hidden;border:1px solid #1b2332;padding:24px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+<span style="font-size:13px;color:#e2e8f0;font-weight:500">录音回溯</span>
+</div>
+<!-- Scrubber timeline -->
+<div style="position:relative;height:60px;background:rgba(52,211,153,0.04);border-radius:12px;margin-bottom:20px;overflow:hidden">
+<div id="scrubberBars" style="display:flex;align-items:end;height:100%;gap:1px;padding:8px 12px"></div>
+<div style="position:absolute;left:60%;top:0;bottom:0;width:2px;background:#34d399;z-index:2">
+<div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:#34d399"></div>
+</div>
+</div>
+<!-- Highlighted text -->
+<div style="font-size:14px;line-height:2;color:#475569">
+<span>我觉得首页的信息密度太高了</span>
+<span style="color:#fff;background:rgba(52,211,153,0.15);padding:2px 4px;border-radius:4px;border-bottom:2px solid #34d399">可以考虑把合集入口做成横滑卡片</span>
+<span>减少纵向空间占用另外语音笔记的入口要更明显</span>
+</div>
+<div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+<div style="width:28px;height:28px;border-radius:50%;background:rgba(52,211,153,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="#34d399"><polygon points="5,3 19,12 5,21"/></svg>
+</div>
+<span style="font-size:12px;color:#34d399">01:05</span>
+<div style="flex:1;height:3px;background:rgba(255,255,255,0.06);border-radius:2px">
+<div style="width:60%;height:100%;background:#34d399;border-radius:2px"></div>
+</div>
+<span style="font-size:12px;color:#475569">03:42</span>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">点击文字 · 跳转音频位置</div>
+</div>
+
+</div>
+</section>
+
+<!-- ==================== CONCEPT 3: Split Morph ==================== -->
+<section class="concept-section">
+<span class="section-tag" style="color:#f59e0b;background:rgba(245,158,11,0.1)">Concept 03</span>
+<h2 class="section-title">Split Morph — 录音到笔记的变形动画</h2>
+<p class="section-desc">灵感来源：Notion AI + Framer Motion。录音结束后，原始转写文本不是"消失再出现"，而是通过动画"变形"成结构化笔记——文字重新排列、标题浮出、待办项从段落中"抽离"出来。让用户看到 AI 整理的过程，建立信任感。</p>
+<div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap">
+
+<!-- Before: Raw transcript -->
+<div style="text-align:center">
+<div style="width:320px;background:#111;border-radius:20px;border:1px solid #222;padding:24px;text-align:left">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
+<div style="width:6px;height:6px;border-radius:50%;background:#f59e0b"></div>
+<span style="font-size:12px;color:#f59e0b;font-weight:600">原始转写</span>
+</div>
+<div style="font-size:13px;line-height:1.9;color:#888">
+嗯那个我觉得这个方案吧就是说首页那个信息密度确实太高了然后用户第一眼不知道看哪里对吧然后我建议就是把那个合集入口做成横滑卡片这样的话纵向空间就省出来了然后还有一个事就是<span style="color:#f59e0b;text-decoration:underline;text-decoration-style:wavy">下周三之前</span>把交互稿出了啊这个比较急
+</div>
+<div style="margin-top:16px;padding:10px 12px;background:rgba(245,158,11,0.06);border-radius:8px;border:1px dashed rgba(245,158,11,0.2)">
+<div style="font-size:11px;color:#92400e;display:flex;align-items:center;gap:4px">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+AI 检测到：1个待办 · 1个时间节点
+</div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">Step 1 · 口语化原文 + AI 标注</div>
+</div>
+
+<!-- Arrow -->
+<div style="display:flex;align-items:center;color:#333;font-size:28px;padding-top:40px">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</div>
+
+<!-- After: Structured note -->
+<div style="text-align:center">
+<div style="width:320px;background:#111;border-radius:20px;border:1px solid #222;padding:24px;text-align:left">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
+<div style="width:6px;height:6px;border-radius:50%;background:#34d399"></div>
+<span style="font-size:12px;color:#34d399;font-weight:600">结构化笔记</span>
+<span style="font-size:10px;color:#555;margin-left:auto;background:rgba(52,211,153,0.1);padding:2px 8px;border-radius:4px">AI 生成</span>
+</div>
+<!-- Structured content -->
+<div style="font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:12px">首页信息密度优化讨论</div>
+<div style="font-size:13px;line-height:1.8;color:#94a3b8;margin-bottom:16px">
+<div style="font-weight:600;color:#cbd5e1;margin-bottom:4px">核心问题</div>
+首页信息密度过高，用户首次进入时缺乏视觉焦点。
+</div>
+<div style="font-size:13px;line-height:1.8;color:#94a3b8;margin-bottom:16px">
+<div style="font-weight:600;color:#cbd5e1;margin-bottom:4px">解决方案</div>
+将合集入口改为横滑卡片形式，释放纵向空间。
+</div>
+<!-- Todo extracted -->
+<div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.15);border-radius:10px;padding:12px">
+<div style="font-size:11px;color:#34d399;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:4px">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+待办事项
+</div>
+<div style="display:flex;align-items:center;gap:8px">
+<div style="width:16px;height:16px;border-radius:4px;border:1.5px solid #34d399;flex-shrink:0"></div>
+<span style="font-size:13px;color:#cbd5e1">交互稿输出</span>
+<span style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.1);padding:2px 6px;border-radius:4px;margin-left:auto">下周三前</span>
+</div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">Step 2 · 结构化 + 待办抽离</div>
+</div>
+
+</div>
+</section>
+
+<!-- ==================== CONCEPT 4: Floating Pill ==================== -->
+<section class="concept-section">
+<span class="section-tag" style="color:#ec4899;background:rgba(236,72,153,0.1)">Concept 04</span>
+<h2 class="section-title">Floating Pill — 系统级悬浮录音胶囊</h2>
+<p class="section-desc">灵感来源：iOS Dynamic Island + MiClaw 悬浮态。录音不需要停留在笔记 APP 内，一个悬浮在屏幕顶部的胶囊就够了。胶囊可以展开/收起，收起时只显示时长和波形，展开时显示实时转写。适配锁屏、桌面、任意 APP 内的场景。</p>
+<div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap;align-items:flex-start">
+
+<!-- Collapsed pill -->
+<div style="text-align:center">
+<div style="width:280px;height:480px;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 100%);border-radius:36px;overflow:hidden;position:relative;border:1px solid #222">
+<!-- Status bar area -->
+<div style="padding:14px 20px 0;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:14px;font-weight:600;color:#fff">9:41</span>
+<div style="display:flex;gap:4px;align-items:center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+<svg width="18" height="11" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#fff" stroke-opacity="0.35"/><rect x="2" y="2" width="15" height="8" rx="1" fill="#fff"/><path d="M23 4v4.5a2 2 0 0 0 0-4.5z" fill="#fff" fill-opacity="0.4"/></svg>
+</div>
+</div>
+<!-- Floating pill - collapsed -->
+<div style="display:flex;justify-content:center;margin-top:8px">
+<div style="background:#000;border-radius:24px;padding:8px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 24px rgba(0,0,0,0.5);border:1px solid #333;min-width:180px">
+<div style="width:8px;height:8px;border-radius:50%;background:#ec4899;animation:pulse-blue 1.5s infinite;flex-shrink:0"></div>
+<div style="display:flex;gap:1px;align-items:center;height:20px" id="pillWave1"></div>
+<span style="font-size:13px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums">2:34</span>
+</div>
+</div>
+<!-- Fake app content behind -->
+<div style="padding:24px 16px;margin-top:20px">
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;height:60px;margin-bottom:10px"></div>
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;height:60px;margin-bottom:10px"></div>
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;height:60px;margin-bottom:10px"></div>
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;height:60px"></div>
+</div>
+<!-- Bottom hint -->
+<div style="position:absolute;bottom:20px;left:0;right:0;text-align:center">
+<span style="font-size:11px;color:#555">其他 APP 正常使用中</span>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">收起态 · 最小干扰</div>
+</div>
+
+<!-- Expanded pill -->
+<div style="text-align:center">
+<div style="width:280px;height:480px;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 100%);border-radius:36px;overflow:hidden;position:relative;border:1px solid #222">
+<div style="padding:14px 20px 0;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:14px;font-weight:600;color:#fff">9:41</span>
+<div style="display:flex;gap:4px;align-items:center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+<svg width="18" height="11" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2" stroke="#fff" stroke-opacity="0.35"/><rect x="2" y="2" width="15" height="8" rx="1" fill="#fff"/><path d="M23 4v4.5a2 2 0 0 0 0-4.5z" fill="#fff" fill-opacity="0.4"/></svg>
+</div>
+</div>
+<!-- Floating pill - expanded -->
+<div style="margin:8px 12px 0;background:#000;border-radius:20px;padding:16px;box-shadow:0 8px 40px rgba(0,0,0,0.6);border:1px solid #333">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="display:flex;align-items:center;gap:6px">
+<div style="width:6px;height:6px;border-radius:50%;background:#ec4899;animation:pulse-blue 1.5s infinite"></div>
+<span style="font-size:12px;color:#ec4899;font-weight:600">录音中 · 02:34</span>
+</div>
+<div style="display:flex;gap:6px">
+<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center">
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+</div>
+<div style="width:28px;height:28px;border-radius:50%;background:rgba(236,72,153,0.2);display:flex;align-items:center;justify-content:center">
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+</div>
+</div>
+</div>
+<!-- Mini transcript -->
+<div style="font-size:13px;line-height:1.8;color:#999;max-height:80px;overflow:hidden;position:relative">
+<span style="color:#ccc">我们需要一个全局的悬浮录音按钮</span>
+<span style="color:#fff">这样用户在任何页面都能快速开始记录<span style="display:inline-block;width:2px;height:12px;background:#ec4899;vertical-align:middle;margin-left:2px;animation:blink 1s infinite"></span></span>
+</div>
+<!-- Quick actions -->
+<div style="display:flex;gap:6px;margin-top:12px">
+<div style="flex:1;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px;text-align:center;font-size:11px;color:#888;cursor:pointer">📋 会议纪要</div>
+<div style="flex:1;background:rgba(236,72,153,0.1);border-radius:8px;padding:8px;text-align:center;font-size:11px;color:#ec4899;cursor:pointer;border:1px solid rgba(236,72,153,0.2)">✨ 智能识别</div>
+<div style="flex:1;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px;text-align:center;font-size:11px;color:#888;cursor:pointer">📝 灵感记录</div>
+</div>
+</div>
+<!-- Blurred app content -->
+<div style="padding:20px 16px;margin-top:12px;filter:blur(2px);opacity:0.4">
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;height:60px;margin-bottom:10px"></div>
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;height:60px;margin-bottom:10px"></div>
+<div style="background:rgba(255,255,255,0.03);border-radius:12px;height:60px"></div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:12px">展开态 · 实时转写 + 模板选择</div>
+</div>
+
+</div>
+</section>
+
+<!-- ==================== CONCEPT 5: Dual Pane ==================== -->
+<section class="concept-section">
+<span class="section-tag" style="color:#818cf8;background:rgba(129,140,248,0.1)">Concept 05</span>
+<h2 class="section-title">Dual Pane — 原文与笔记实时对照</h2>
+<p class="section-desc">灵感来源：Granola 的人机协作 + 翻译软件的双栏对照。左侧是实时转写的原始文本流，右侧是 AI 实时整理的结构化笔记。两侧内容通过颜色连线关联，用户可以看到每段整理内容的"原话出处"。适合平板横屏或大屏手机。</p>
+
+<div style="max-width:700px;margin:0 auto;background:#0d1117;border-radius:20px;border:1px solid #1b2332;overflow:hidden">
+<!-- Top bar -->
+<div style="padding:16px 20px;border-bottom:1px solid #1b2332;display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;align-items:center;gap:8px">
+<div style="width:8px;height:8px;border-radius:50%;background:#818cf8;animation:pulse-blue 1.5s infinite"></div>
+<span style="font-size:13px;color:#e2e8f0;font-weight:500">产品评审会 · 录音中 05:12</span>
+</div>
+<div style="display:flex;gap:8px;align-items:center">
+<span style="font-size:11px;color:#818cf8;background:rgba(129,140,248,0.1);padding:4px 10px;border-radius:6px">实时对照模式</span>
+<div style="width:28px;height:28px;border-radius:6px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+</div>
+</div>
+</div>
+<!-- Dual pane -->
+<div style="display:flex;min-height:360px">
+<!-- Left: Raw transcript -->
+<div style="flex:1;padding:20px;border-right:1px solid #1b2332;position:relative">
+<div style="font-size:11px;color:#475569;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">原始转写</div>
+<div style="font-size:13px;line-height:2;color:#64748b">
+<div style="margin-bottom:8px;padding:4px 0;border-left:2px solid transparent">
+<span style="color:#475569;font-size:11px">说话人1 · 00:32</span><br>
+<span>首页信息密度太高了用户第一眼不知道看哪里</span>
+</div>
+<div style="margin-bottom:8px;padding:4px 0 4px 8px;border-left:2px solid #818cf8;background:rgba(129,140,248,0.04);border-radius:0 6px 6px 0">
+<span style="color:#475569;font-size:11px">说话人2 · 01:05</span><br>
+<span style="color:#94a3b8">把合集入口做成横滑卡片减少纵向空间占用</span>
+</div>
+<div style="margin-bottom:8px;padding:4px 0 4px 8px;border-left:2px solid #34d399;background:rgba(52,211,153,0.04);border-radius:0 6px 6px 0">
+<span style="color:#475569;font-size:11px">说话人1 · 02:18</span><br>
+<span style="color:#94a3b8">下周三之前把交互稿出了这个比较急</span>
+</div>
+<div style="padding:4px 0">
+<span style="color:#475569;font-size:11px">说话人3 · 03:40</span><br>
+<span style="color:#cbd5e1">语音笔记入口要更明显现在藏得太深<span style="display:inline-block;width:2px;height:12px;background:#818cf8;vertical-align:middle;animation:blink 1s infinite"></span></span>
+</div>
+</div>
+</div>
+<!-- Right: AI structured -->
+<div style="flex:1;padding:20px;background:rgba(129,140,248,0.02)">
+<div style="font-size:11px;color:#818cf8;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:4px">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+AI 整理
+</div>
+<!-- Structured blocks -->
+<div style="margin-bottom:16px">
+<div style="font-size:14px;font-weight:600;color:#e2e8f0;margin-bottom:6px">问题</div>
+<div style="font-size:13px;color:#94a3b8;line-height:1.6;padding-left:10px;border-left:2px solid rgba(129,140,248,0.3)">首页信息密度过高，缺乏视觉焦点</div>
+</div>
+<div style="margin-bottom:16px">
+<div style="font-size:14px;font-weight:600;color:#e2e8f0;margin-bottom:6px;display:flex;align-items:center;gap:4px">
+方案
+<span style="width:6px;height:6px;border-radius:50%;background:#818cf8;display:inline-block"></span>
+</div>
+<div style="font-size:13px;color:#94a3b8;line-height:1.6;padding-left:10px;border-left:2px solid rgba(129,140,248,0.3)">合集入口改为横滑卡片，释放纵向空间</div>
+</div>
+<div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.15);border-radius:8px;padding:10px 12px">
+<div style="font-size:12px;font-weight:600;color:#34d399;margin-bottom:6px;display:flex;align-items:center;gap:4px">
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+待办
+<span style="width:6px;height:6px;border-radius:50%;background:#34d399;display:inline-block"></span>
+</div>
+<div style="display:flex;align-items:center;gap:6px">
+<div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #34d399;flex-shrink:0"></div>
+<span style="font-size:12px;color:#cbd5e1">交互稿输出</span>
+<span style="font-size:10px;color:#f59e0b;background:rgba(245,158,11,0.1);padding:1px 6px;border-radius:3px;margin-left:auto">下周三</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ==================== CONCEPT 6: Voice Command Card ==================== -->
+<section class="concept-section">
+<span class="section-tag" style="color:#f97316;background:rgba(249,115,22,0.1)">Concept 06</span>
+<h2 class="section-title">Voice Command Card — MiClaw 语音指令笔记卡片</h2>
+<p class="section-desc">灵感来源：MiClaw 悬浮态 + Apple Dynamic Island。用户在任意界面对 MiClaw 说"帮我记一下"，屏幕顶部弹出一张轻量卡片，实时显示录入内容和 AI 处理进度。完成后卡片收缩为通知，点击进入完整笔记。全程不打断当前操作。</p>
+<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;align-items:flex-start">
+
+<!-- Step 1: Trigger -->
+<div style="text-align:center">
+<div style="width:240px;height:440px;background:linear-gradient(180deg,#111 0%,#0a0a0a 100%);border-radius:32px;overflow:hidden;position:relative;border:1px solid #222">
+<div style="padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:13px;font-weight:600;color:#fff">9:41</span>
+<div style="width:14px;height:10px;border:1.5px solid #fff;border-radius:2px"></div>
+</div>
+<!-- MiClaw floating -->
+<div style="position:absolute;bottom:80px;right:16px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 4px 20px rgba(249,115,22,0.4);display:flex;align-items:center;justify-content:center;animation:orb-breathe 3s ease-in-out infinite">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+</div>
+<!-- Speech bubble -->
+<div style="position:absolute;bottom:136px;right:12px;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);border-radius:12px 12px 4px 12px;padding:8px 12px;max-width:180px">
+<span style="font-size:12px;color:#fdba74">"帮我记一下，明天下午三点开产品评审会"</span>
+</div>
+<!-- Fake content -->
+<div style="padding:50px 16px 0">
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px;margin-bottom:8px"></div>
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px;margin-bottom:8px"></div>
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px"></div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:10px">① 唤起 MiClaw</div>
+</div>
+
+<!-- Step 2: Processing card -->
+<div style="text-align:center">
+<div style="width:240px;height:440px;background:linear-gradient(180deg,#111 0%,#0a0a0a 100%);border-radius:32px;overflow:hidden;position:relative;border:1px solid #222">
+<div style="padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:13px;font-weight:600;color:#fff">9:41</span>
+<div style="width:14px;height:10px;border:1.5px solid #fff;border-radius:2px"></div>
+</div>
+<!-- Processing card at top -->
+<div style="margin:10px 10px 0;background:#1a1008;border:1px solid rgba(249,115,22,0.2);border-radius:16px;padding:14px;animation:card-in 0.5s ease-out">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+<div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+</div>
+<div>
+<div style="font-size:12px;font-weight:600;color:#fdba74">MiClaw 正在创建笔记</div>
+<div style="font-size:11px;color:#78716c">识别内容 · 提取日程...</div>
+</div>
+</div>
+<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
+<div style="height:100%;width:60%;background:linear-gradient(90deg,#f97316,#fbbf24);border-radius:2px;animation:progress-move 2s ease-in-out infinite"></div>
+</div>
+</div>
+<!-- Fake content -->
+<div style="padding:16px 16px 0;filter:blur(0);opacity:0.6">
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px;margin-bottom:8px"></div>
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px;margin-bottom:8px"></div>
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px"></div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:10px">② AI 处理中</div>
+</div>
+
+<!-- Step 3: Done notification -->
+<div style="text-align:center">
+<div style="width:240px;height:440px;background:linear-gradient(180deg,#111 0%,#0a0a0a 100%);border-radius:32px;overflow:hidden;position:relative;border:1px solid #222">
+<div style="padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:13px;font-weight:600;color:#fff">9:41</span>
+<div style="width:14px;height:10px;border:1.5px solid #fff;border-radius:2px"></div>
+</div>
+<!-- Success card -->
+<div style="margin:10px 10px 0;background:#071a0e;border:1px solid rgba(52,211,153,0.2);border-radius:16px;padding:14px;animation:card-in 0.5s ease-out">
+<div style="display:flex;align-items:flex-start;gap:10px">
+<div style="width:28px;height:28px;border-radius:8px;background:rgba(52,211,153,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+</div>
+<div style="flex:1">
+<div style="font-size:13px;font-weight:600;color:#34d399;margin-bottom:4px">笔记已创建</div>
+<div style="font-size:12px;color:#94a3b8;line-height:1.5;margin-bottom:8px">明日产品评审会提醒</div>
+<div style="display:flex;gap:6px">
+<div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:6px;padding:4px 10px;font-size:11px;color:#34d399;cursor:pointer">查看笔记</div>
+<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:6px;padding:4px 10px;font-size:11px;color:#fbbf24;cursor:pointer">加入日历</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Fake content -->
+<div style="padding:16px 16px 0">
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px;margin-bottom:8px"></div>
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px;margin-bottom:8px"></div>
+<div style="background:rgba(255,255,255,0.02);border-radius:10px;height:50px"></div>
+</div>
+</div>
+<div style="color:#555;font-size:12px;margin-top:10px">③ 完成 · 可操作通知</div>
+</div>
+
+</div>
+</section>
+
+<!-- ==================== SUMMARY ==================== -->
+<section class="concept-section" style="margin-top:40px">
+<span class="section-tag" style="color:#fff;background:rgba(255,255,255,0.1)">Summary</span>
+<h2 class="section-title">设计方向总结</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px">
+
+<div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px">
+<div style="font-size:14px;font-weight:600;color:#0af;margin-bottom:8px">01 Ambient Orb</div>
+<div style="font-size:13px;color:#777;line-height:1.7">用有生命感的光球替代麦克风按钮。适合作为笔记 APP 内的主录音入口，强调"AI 在听"的感知。</div>
+<div style="margin-top:10px;font-size:11px;color:#444">适用场景：APP 内录音主界面</div>
+</div>
+
+<div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px">
+<div style="font-size:14px;font-weight:600;color:#34d399;margin-bottom:8px">02 Waveform Canvas</div>
+<div style="font-size:13px;color:#777;line-height:1.7">波形和文字融合的画布，每段文字锚定到音频时间点。适合长录音场景，解决"录音回溯"的体验问题。</div>
+<div style="margin-top:10px;font-size:11px;color:#444">适用场景：会议录音、课堂笔记</div>
+</div>
+
+<div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px">
+<div style="font-size:14px;font-weight:600;color:#f59e0b;margin-bottom:8px">03 Split Morph</div>
+<div style="font-size:13px;color:#777;line-height:1.7">原始转写"变形"为结构化笔记的过程可视化。解决用户对 AI 整理结果的信任问题——看到过程就信任结果。</div>
+<div style="margin-top:10px;font-size:11px;color:#444">适用场景：AI 整理结果展示</div>
+</div>
+
+<div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px">
+<div style="font-size:14px;font-weight:600;color:#ec4899;margin-bottom:8px">04 Floating Pill</div>
+<div style="font-size:13px;color:#777;line-height:1.7">系统级悬浮胶囊，录音不需要停留在笔记 APP 内。收起时最小干扰，展开时实时转写。</div>
+<div style="margin-top:10px;font-size:11px;color:#444">适用场景：跨 APP 录音、悬浮窗</div>
+</div>
+
+<div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px">
+<div style="font-size:14px;font-weight:600;color:#818cf8;margin-bottom:8px">05 Dual Pane</div>
+<div style="font-size:13px;color:#777;line-height:1.7">左右双栏对照：原始转写 vs AI 整理。通过颜色连线建立对应关系，适合需要核实原文的严肃场景。</div>
+<div style="margin-top:10px;font-size:11px;color:#444">适用场景：平板横屏、会议纪要核实</div>
+</div>
+
+<div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px">
+<div style="font-size:14px;font-weight:600;color:#f97316;margin-bottom:8px">06 Voice Command Card</div>
+<div style="font-size:13px;color:#777;line-height:1.7">MiClaw 语音指令触发，顶部弹出轻量卡片显示处理进度，完成后变为可操作通知。全程零打断。</div>
+<div style="margin-top:10px;font-size:11px;color:#444">适用场景：MiClaw 语音指令、锁屏场景</div>
+</div>
+
+</div>
+</section>
+
+</div>
+
+<script>
+// Generate mini waveform bars for pill
+(function(){
+  var c=document.getElementById('pillWave1');
+  if(!c)return;
+  for(var i=0;i<16;i++){
+    var b=document.createElement('div');
+    b.style.cssText='width:2px;border-radius:1px;background:#ec4899;';
+    var h=Math.random()*12+3;
+    b.style.height=h+'px';
+    b.style.animation='wave-bar 1.2s ease-in-out infinite '+(i*0.08)+'s';
+    c.appendChild(b);
+  }
+})();
+
+// Generate scrubber bars
+(function(){
+  var c=document.getElementById('scrubberBars');
+  if(!c)return;
+  for(var i=0;i<80;i++){
+    var b=document.createElement('div');
+    var h=Math.random()*36+6;
+    var isActive=i<48;
+    b.style.cssText='width:2px;border-radius:1px;flex-shrink:0;height:'+h+'px;background:'+(isActive?'#34d399':'#1e293b')+';opacity:'+(isActive?'0.7':'0.4');
+    c.appendChild(b);
+  }
+})();
+
+// Waveform canvas animation
+(function(){
+  var canvas=document.getElementById('waveCanvas');
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var w=canvas.width,h=canvas.height;
+  var bars=[];
+  for(var i=0;i<60;i++) bars.push(Math.random());
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    for(var i=0;i<bars.length;i++){
+      bars[i]+=(Math.random()-0.5)*0.1;
+      if(bars[i]<0.05)bars[i]=0.05;
+      if(bars[i]>1)bars[i]=1;
+      var bh=bars[i]*h*0.6;
+      var x=i*(w/bars.length);
+      var bw=w/bars.length-1;
+      ctx.fillStyle='rgba(52,211,153,0.15)';
+      ctx.fillRect(x,h/2-bh/2,bw,bh);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+<style>
+@keyframes wave-bar{
+  0%,100%{transform:scaleY(1)}
+  50%{transform:scaleY(0.3)}
+}
+</style>
+
+</body>
+</html>

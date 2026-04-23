@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔记首页 · 合集入口融合方案</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'PingFang SC', 'SF Pro Display', sans-serif; background: #f0f0f5; color: #1a1a1a; }
+
+  .page-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
+  .page-header h1 { font-size: 17px; font-weight: 600; }
+  .page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #eee; padding: 0 12px; position: sticky; top: 61px; z-index: 10; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab { padding: 12px 14px; font-size: 13px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; flex-shrink: 0; }
+  .tab.active { color: #FF6900; border-bottom-color: #FF6900; font-weight: 600; }
+  .scene-panel { display: none; padding: 16px; }
+  .scene-panel.active { display: block; }
+  .scene-desc { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; color: #555; }
+  .scene-desc strong { color: #1a1a1a; }
+
+  .dual-phone { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; padding: 8px 0 24px; }
+  .phone-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .phone-label { font-size: 12px; color: #999; font-weight: 500; }
+  .phone { width: 340px; height: 720px; background: #1a1a1a; border-radius: 40px; padding: 10px; box-shadow: 0 16px 48px rgba(0,0,0,.25); position: relative; overflow: hidden; }
+  .phone-screen { width: 100%; height: 100%; background: #fff; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+  /* 首页通用 */
+  .home-status { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+  .home-status .time { font-size: 14px; font-weight: 600; }
+  .home-status .icons { font-size: 12px; color: #333; }
+  .home-top { display: flex; align-items: center; justify-content: flex-end; padding: 0 20px 4px; gap: 16px; flex-shrink: 0; }
+  .home-top .icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #333; cursor: pointer; }
+  .home-title { padding: 4px 20px 12px; font-size: 26px; font-weight: 700; flex-shrink: 0; }
+  .home-search { margin: 0 16px 12px; background: #f5f5f5; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #999; flex-shrink: 0; }
+
+  /* 文件夹栏 */
+  .folder-bar { display: flex; gap: 8px; padding: 0 16px 10px; overflow-x: auto; flex-shrink: 0; -webkit-overflow-scrolling: touch; }
+  .folder-bar::-webkit-scrollbar { display: none; }
+  .folder-chip { padding: 6px 14px; border-radius: 18px; font-size: 12px; white-space: nowrap; cursor: pointer; transition: all .15s; background: #f5f5f5; color: #666; flex-shrink: 0; }
+  .folder-chip.active { background: #FF6900; color: #fff; font-weight: 600; }
+  .filter-icon { width: 36px; height: 36px; border-radius: 18px; border: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #666; flex-shrink: 0; cursor: pointer; }
+
+  /* 合集横滑区域 */
+  .collection-section { flex-shrink: 0; padding: 0 0 8px; }
+  .collection-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 8px; }
+  .collection-header-left { display: flex; align-items: center; gap: 6px; }
+  .collection-header-left .label { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .collection-header-left .ai-spark { width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c); display: flex; align-items: center; justify-content: center; font-size: 8px; color: #fff; font-weight: 700; }
+  .collection-header .more { font-size: 12px; color: #999; cursor: pointer; }
+  .collection-scroll { display: flex; gap: 10px; padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .collection-scroll::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>笔记首页 · 合集入口融合方案</h1>
+  <p>在现有首页基础上融入"合集"概念，展示 3 种方案对比</p>
+</div>
+<div class="tab-bar" id="tabBar">
+  <div class="tab active" onclick="switchTab(0)">方案A · 横滑卡片</div>
+  <div class="tab" onclick="switchTab(1)">方案B · 筛选栏融合</div>
+  <div class="tab" onclick="switchTab(2)">方案C · 独立Tab</div>
+  <div class="tab" onclick="switchTab(3)">合集详情页</div>
+</div>
+
+<!-- ===== 方案A：横滑卡片区 ===== -->
+<div class="scene-panel active" id="panel-0">
+  <div class="scene-desc">
+    <strong>方案 A · 合集横滑卡片区</strong><br>
+    在文件夹筛选栏下方新增一个可收起的"合集"横滑区域。合集卡片由 AI 自动生成和维护，展示主题名称、笔记数量和最近更新时间。<br>
+    优势：合集和文件夹在视觉上明确分离，用户一眼能区分"我的分类"和"AI 的分类"。<br>
+    劣势：首页纵向空间被压缩，笔记列表可见区域减少。
+  </div>
+  <div class="dual-phone">
+    <div class="phone-col">
+      <div class="phone-label">首页 · 合集展开态</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜索笔记
+        </div>
+        <div class="folder-bar">
+          <div class="filter-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          </div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip">工作</div>
+          <div class="folder-chip">读后感</div>
+          <div class="folder-chip">生活点滴</div>
+          <div class="folder-chip">旅行</div>
+        </div>
+
+        <!-- 合集横滑区 -->
+        <div class="collection-section">
+          <div class="collection-header">
+            <div class="collection-header-left">
+              <div class="ai-spark">AI</div>
+              <span class="label">合集</span>
+            </div>
+            <span class="more">查看全部 ›</span>
+          </div>
+          <div class="collection-scroll">
+            <div style="min-width:140px;background:linear-gradient(135deg,#EBF5FF,#DBEAFE);border-radius:12px;padding:12px;cursor:pointer;flex-shrink:0;">
+              <div style="font-size:20px;margin-bottom:6px;">📋</div>
+              <div style="font-size:13px;font-weight:600;color:#1e40af;">会议纪要</div>
+              <div style="font-size:11px;color:#60a5fa;margin-top:2px;">12 篇 · 今天更新</div>
+            </div>
+            <div style="min-width:140px;background:linear-gradient(135deg,#E8F8EE,#D1FAE5);border-radius:12px;padding:12px;cursor:pointer;flex-shrink:0;">
+              <div style="font-size:20px;margin-bottom:6px;">📞</div>
+              <div style="font-size:13px;font-weight:600;color:#166534;">通话摘要</div>
+              <div style="font-size:11px;color:#4ade80;margin-top:2px;">8 篇 · 昨天更新</div>
+            </div>
+            <div style="min-width:140px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:12px;padding:12px;cursor:pointer;flex-shrink:0;">
+              <div style="font-size:20px;margin-bottom:6px;">📰</div>
+              <div style="font-size:13px;font-weight:600;color:#92400e;">每日简报</div>
+              <div style="font-size:11px;color:#f59e0b;margin-top:2px;">3 篇 · 今天更新</div>
+            </div>
+            <div style="min-width:140px;background:linear-gradient(135deg,#F0EBFF,#DDD6FE);border-radius:12px;padding:12px;cursor:pointer;flex-shrink:0;">
+              <div style="font-size:20px;margin-bottom:6px;">🏗</div>
+              <div style="font-size:13px;font-weight:600;color:#5b21b6;">Q2 产品规划</div>
+              <div style="font-size:11px;color:#a78bfa;margin-top:2px;">6 篇 · 周一更新</div>
+            </div>
+            <div style="min-width:140px;background:linear-gradient(135deg,#FFF1F2,#FECDD3);border-radius:12px;padding:12px;cursor:pointer;flex-shrink:0;">
+              <div style="font-size:20px;margin-bottom:6px;">👤</div>
+              <div style="font-size:13px;font-weight:600;color:#9f1239;">王总相关</div>
+              <div style="font-size:11px;color:#fb7185;margin-top:2px;">5 篇 · 今天更新</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 笔记列表 -->
+        <div style="flex:1;overflow-y:auto;padding:0 16px;">
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;border:1px solid #D4E4FF;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:15px;font-weight:600;line-height:1.4;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Q2 产品路线图评审会</div>
+              <div style="width:52px;height:52px;border-radius:8px;background:#EBF5FF;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;">📋</div>
+            </div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">核心决策：MiClaw 集成作为 Q2 P0 优先级，文件理解功能降级为 P1…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>刚刚</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb;">🔊 23:15</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">Figma Sans 的创作故事</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">品牌革新意味着重新思考其根基…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>置顶</span><span style="color:#FF6900;">⭐</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">雨夜咖啡馆</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>周二 13:38</span></div>
+          </div>
+        </div>
+
+        <div style="height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:40px;flex-shrink:0;padding-bottom:4px;">
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">+</div>
+          <div style="width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 16px rgba(168,85,247,.3);">🎙</div>
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">✏</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 合集收起态 -->
+    <div class="phone-col">
+      <div class="phone-label">首页 · 合集收起态</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜索笔记
+        </div>
+        <div class="folder-bar">
+          <div class="filter-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          </div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip">工作</div>
+          <div class="folder-chip">读后感</div>
+          <div class="folder-chip">生活点滴</div>
+        </div>
+
+        <!-- 合集收起态：一行胶囊 -->
+        <div style="padding:0 16px 10px;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#FAFAFA;border-radius:10px;cursor:pointer;">
+            <div style="width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;flex-shrink:0;">AI</div>
+            <div style="font-size:12px;color:#666;flex:1;">
+              <span style="font-weight:500;color:#333;">5 个合集</span>
+              <span style="color:#999;"> · 会议纪要、通话摘要、Q2 产品规划…</span>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+
+        <!-- 笔记列表 - 更多空间 -->
+        <div style="flex:1;overflow-y:auto;padding:0 16px;">
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;border:1px solid #D4E4FF;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:15px;font-weight:600;line-height:1.4;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Q2 产品路线图评审会</div>
+              <div style="width:52px;height:52px;border-radius:8px;background:#EBF5FF;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;">📋</div>
+            </div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">核心决策：MiClaw 集成作为 Q2 P0 优先级，文件理解功能降级为 P1…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>刚刚</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb;">🔊 23:15</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;border:1px solid #C6F0D5;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:15px;font-weight:600;line-height:1.4;flex:1;">与王总通话 · 项目排期确认</div>
+              <div style="width:52px;height:52px;border-radius:8px;background:#E8F8EE;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;">📞</div>
+            </div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">王总确认方案周五前提交即可，预算上限 50 万不变…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>5 分钟前</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">Figma Sans 的创作故事</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">品牌革新意味着重新思考其根基…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>置顶</span><span style="color:#FF6900;">⭐</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">雨夜咖啡馆</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">窗外的雨划出一道道斜线，在玻璃上晕开路灯的光。</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>周二 13:38</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">生活点滴</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">生命是有色彩的，并不是存在的变幻无常…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>周二 13:38</span></div>
+          </div>
+        </div>
+
+        <div style="height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:40px;flex-shrink:0;padding-bottom:4px;">
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">+</div>
+          <div style="width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 16px rgba(168,85,247,.3);">🎙</div>
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">✏</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 方案B：筛选栏融合 ===== -->
+<div class="scene-panel" id="panel-1">
+  <div class="scene-desc">
+    <strong>方案 B · 筛选栏融合（文件夹 + 合集同层）</strong><br>
+    文件夹和合集在同一行筛选栏中展示，合集用不同的视觉样式（渐变边框 + AI 标识）与普通文件夹区分。<br>
+    优势：不占用额外纵向空间，操作路径最短，用户在同一行就能切换文件夹和合集。<br>
+    劣势：筛选栏变长，合集和文件夹的区分度依赖视觉样式，可能不够直观。
+  </div>
+  <div class="dual-phone">
+    <div class="phone-col">
+      <div class="phone-label">首页 · 选中文件夹</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜索笔记
+        </div>
+        <div class="folder-bar" style="gap:6px;">
+          <div class="filter-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          </div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip">工作</div>
+          <div class="folder-chip">读后感</div>
+          <div class="folder-chip">生活</div>
+          <!-- 分隔线 -->
+          <div style="width:1px;height:24px;background:#e0e0e0;flex-shrink:0;align-self:center;"></div>
+          <!-- 合集 chips -->
+          <div style="padding:5px 12px 5px 8px;border-radius:18px;font-size:12px;white-space:nowrap;cursor:pointer;flex-shrink:0;background:linear-gradient(135deg,#EBF5FF,#DBEAFE);color:#1e40af;border:1px solid #93c5fd;display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:700;">AI</span>
+            会议纪要
+          </div>
+          <div style="padding:5px 12px 5px 8px;border-radius:18px;font-size:12px;white-space:nowrap;cursor:pointer;flex-shrink:0;background:linear-gradient(135deg,#E8F8EE,#D1FAE5);color:#166534;border:1px solid #86efac;display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:700;">AI</span>
+            通话摘要
+          </div>
+          <div style="padding:5px 12px 5px 8px;border-radius:18px;font-size:12px;white-space:nowrap;cursor:pointer;flex-shrink:0;background:linear-gradient(135deg,#F0EBFF,#DDD6FE);color:#5b21b6;border:1px solid #c4b5fd;display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:700;">AI</span>
+            Q2 规划
+          </div>
+        </div>
+
+        <!-- 笔记列表 -->
+        <div style="flex:1;overflow-y:auto;padding:0 16px;">
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;border:1px solid #D4E4FF;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:15px;font-weight:600;line-height:1.4;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Q2 产品路线图评审会</div>
+              <div style="width:52px;height:52px;border-radius:8px;background:#EBF5FF;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;">📋</div>
+            </div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">核心决策：MiClaw 集成作为 Q2 P0 优先级…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>刚刚</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;border:1px solid #C6F0D5;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:15px;font-weight:600;line-height:1.4;flex:1;">与王总通话 · 项目排期确认</div>
+              <div style="width:52px;height:52px;border-radius:8px;background:#E8F8EE;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;">📞</div>
+            </div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">王总确认方案周五前提交即可…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>5 分钟前</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">Figma Sans 的创作故事</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">品牌革新意味着重新思考其根基…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>置顶</span><span style="color:#FF6900;">⭐</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">雨夜咖啡馆</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">窗外的雨划出一道道斜线…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>周二 13:38</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">生活点滴</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">生命是有色彩的…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>周二 13:38</span></div>
+          </div>
+        </div>
+
+        <div style="height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:40px;flex-shrink:0;padding-bottom:4px;">
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">+</div>
+          <div style="width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 16px rgba(168,85,247,.3);">🎙</div>
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">✏</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 选中合集态 -->
+    <div class="phone-col">
+      <div class="phone-label">首页 · 选中合集筛选</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+        <div class="home-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜索笔记
+        </div>
+        <div class="folder-bar" style="gap:6px;">
+          <div class="filter-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          </div>
+          <div class="folder-chip">全部</div>
+          <div class="folder-chip">工作</div>
+          <div class="folder-chip">读后感</div>
+          <div class="folder-chip">生活</div>
+          <div style="width:1px;height:24px;background:#e0e0e0;flex-shrink:0;align-self:center;"></div>
+          <!-- 选中态的合集 -->
+          <div style="padding:5px 12px 5px 8px;border-radius:18px;font-size:12px;white-space:nowrap;cursor:pointer;flex-shrink:0;background:#1e40af;color:#fff;font-weight:600;border:1px solid #1e40af;display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:rgba(255,255,255,.3);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:700;">AI</span>
+            会议纪要
+          </div>
+          <div style="padding:5px 12px 5px 8px;border-radius:18px;font-size:12px;white-space:nowrap;cursor:pointer;flex-shrink:0;background:linear-gradient(135deg,#E8F8EE,#D1FAE5);color:#166534;border:1px solid #86efac;display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:700;">AI</span>
+            通话摘要
+          </div>
+        </div>
+
+        <!-- 合集信息条 -->
+        <div style="padding:0 16px 8px;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#EBF5FF;border-radius:8px;">
+            <span style="font-size:14px;">📋</span>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;color:#1e40af;">会议纪要合集</div>
+              <div style="font-size:11px;color:#60a5fa;">AI 自动整理 · 12 篇笔记</div>
+            </div>
+            <div style="font-size:12px;color:#1e40af;cursor:pointer;padding:4px 10px;background:#fff;border-radius:6px;">问一问</div>
+          </div>
+        </div>
+
+        <!-- 筛选后的笔记列表 -->
+        <div style="flex:1;overflow-y:auto;padding:0 16px;">
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">Q2 产品路线图评审会</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">核心决策：MiClaw 集成作为 Q2 P0 优先级…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>今天 14:20</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">AI 笔记内测复盘会</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">内测用户反馈汇总，语音转写准确率 96%，用户满意度 4.2/5…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>昨天 16:00</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">MiClaw 集成方案评审</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">确定 Tool 清单和数据接入协议，笔记作为内容助手主界面…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>3/27 周四</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">设计评审 · 首页改造方案</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">首页信息流方案确定，采用时间流+智能文件夹双维度…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>3/25 周二</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:40px;flex-shrink:0;padding-bottom:4px;">
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">+</div>
+          <div style="width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 16px rgba(168,85,247,.3);">🎙</div>
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">✏</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 方案C：独立Tab ===== -->
+<div class="scene-panel" id="panel-2">
+  <div class="scene-desc">
+    <strong>方案 C · 独立 Tab 页（笔记 / 合集 双 Tab）</strong><br>
+    在"笔记"标题下方增加"笔记 | 合集"双 Tab 切换。笔记 Tab 保持现有首页不变，合集 Tab 展示 AI 自动生成的所有合集。<br>
+    优势：合集有独立的完整展示空间，不压缩笔记列表；概念分离最彻底。<br>
+    劣势：合集入口藏在 Tab 切换里，用户可能不会主动发现；切换成本比方案 A/B 高。
+  </div>
+  <div class="dual-phone">
+    <!-- 笔记 Tab -->
+    <div class="phone-col">
+      <div class="phone-label">笔记 Tab（默认）</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+
+        <!-- 双 Tab -->
+        <div style="display:flex;margin:0 16px 10px;background:#f5f5f5;border-radius:10px;padding:3px;flex-shrink:0;">
+          <div style="flex:1;text-align:center;padding:8px;font-size:13px;font-weight:600;color:#1a1a1a;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;">笔记</div>
+          <div style="flex:1;text-align:center;padding:8px;font-size:13px;color:#999;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:700;">AI</span>
+            合集
+          </div>
+        </div>
+
+        <div class="home-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜索笔记
+        </div>
+        <div class="folder-bar">
+          <div class="filter-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          </div>
+          <div class="folder-chip active">全部</div>
+          <div class="folder-chip">工作</div>
+          <div class="folder-chip">读后感</div>
+          <div class="folder-chip">生活点滴</div>
+          <div class="folder-chip">旅行</div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:0 16px;">
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;border:1px solid #D4E4FF;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:15px;font-weight:600;line-height:1.4;flex:1;">Q2 产品路线图评审会</div>
+              <div style="width:52px;height:52px;border-radius:8px;background:#EBF5FF;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;">📋</div>
+            </div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">核心决策：MiClaw 集成作为 Q2 P0 优先级…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>刚刚</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:14px;border-radius:4px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);font-size:8px;color:#fff;font-weight:700;">AI</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">Figma Sans 的创作故事</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">品牌革新意味着重新思考其根基…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>置顶</span><span style="color:#FF6900;">⭐</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">雨夜咖啡馆</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">窗外的雨划出一道道斜线…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>周二 13:38</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">生活点滴</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">生命是有色彩的…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;"><span>周二 13:38</span></div>
+          </div>
+        </div>
+
+        <div style="height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:40px;flex-shrink:0;padding-bottom:4px;">
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">+</div>
+          <div style="width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 16px rgba(168,85,247,.3);">🎙</div>
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">✏</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 合集 Tab -->
+    <div class="phone-col">
+      <div class="phone-label">合集 Tab</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:36</span><span class="icons">📶 🔋</span></div>
+        <div class="home-top"><span class="icon-btn">☑</span><span class="icon-btn">⋮</span></div>
+        <div class="home-title">笔记</div>
+
+        <!-- 双 Tab - 合集选中 -->
+        <div style="display:flex;margin:0 16px 10px;background:#f5f5f5;border-radius:10px;padding:3px;flex-shrink:0;">
+          <div style="flex:1;text-align:center;padding:8px;font-size:13px;color:#999;cursor:pointer;">笔记</div>
+          <div style="flex:1;text-align:center;padding:8px;font-size:13px;font-weight:600;color:#1a1a1a;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:inline-flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:700;">AI</span>
+            合集
+          </div>
+        </div>
+
+        <div class="home-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜索合集
+        </div>
+
+        <!-- 合集列表 -->
+        <div style="flex:1;overflow-y:auto;padding:0 16px;">
+          <!-- 按内容类型 -->
+          <div style="font-size:12px;color:#999;font-weight:500;padding:4px 0 8px;">按内容类型</div>
+
+          <div style="background:linear-gradient(135deg,#EBF5FF,#DBEAFE);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;">📋</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:#1e40af;">会议纪要</div>
+                <div style="font-size:12px;color:#60a5fa;margin-top:2px;">12 篇 · 今天更新</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,#E8F8EE,#D1FAE5);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;">📞</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:#166534;">通话摘要</div>
+                <div style="font-size:12px;color:#4ade80;margin-top:2px;">8 篇 · 昨天更新</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;">📰</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:#92400e;">每日简报</div>
+                <div style="font-size:12px;color:#f59e0b;margin-top:2px;">3 篇 · 今天更新</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <!-- 按主题 -->
+          <div style="font-size:12px;color:#999;font-weight:500;padding:12px 0 8px;">AI 发现的主题</div>
+
+          <div style="background:linear-gradient(135deg,#F0EBFF,#DDD6FE);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;">🏗</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:#5b21b6;">Q2 产品规划</div>
+                <div style="font-size:12px;color:#a78bfa;margin-top:2px;">6 篇 · 跨 3 个文件夹</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,#FFF1F2,#FECDD3);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:#9f1239;">王总相关</div>
+                <div style="font-size:12px;color:#fb7185;margin-top:2px;">5 篇 · 通话+会议</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fda4af" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;">🤖</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:#065f46;">MiClaw 集成</div>
+                <div style="font-size:12px;color:#34d399;margin-top:2px;">4 篇 · 本周新增 2 篇</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:40px;flex-shrink:0;padding-bottom:4px;">
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">+</div>
+          <div style="width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 16px rgba(168,85,247,.3);">🎙</div>
+          <div style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#333;background:#f5f5f5;">✏</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 合集详情页 ===== -->
+<div class="scene-panel" id="panel-3">
+  <div class="scene-desc">
+    <strong>合集详情页</strong><br>
+    点击任意合集后进入的详情页。展示合集内所有笔记，顶部提供合集级 AI 问答入口。<br>
+    合集详情页的核心价值：用户可以在一个主题范围内浏览和提问，比全局搜索更精准。
+  </div>
+  <div class="dual-phone">
+    <!-- 合集详情 -->
+    <div class="phone-col">
+      <div class="phone-label">合集详情 · 会议纪要</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:38</span><span class="icons">📶 🔋</span></div>
+        <!-- 导航栏 -->
+        <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:22px;color:#333;cursor:pointer;">‹</span>
+            <span style="font-size:16px;font-weight:600;">会议纪要</span>
+            <span style="width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;">AI</span>
+          </div>
+          <div style="display:flex;gap:16px;font-size:16px;color:#666;">
+            <span style="cursor:pointer;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </span>
+            <span style="cursor:pointer;">⋯</span>
+          </div>
+        </div>
+
+        <!-- 合集信息头 -->
+        <div style="padding:14px 16px;background:linear-gradient(135deg,#EBF5FF,#DBEAFE);flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);">📋</div>
+            <div>
+              <div style="font-size:11px;color:#60a5fa;">AI 自动整理 · 12 篇笔记</div>
+              <div style="font-size:11px;color:#93c5fd;margin-top:2px;">最近更新：今天 14:20</div>
+            </div>
+          </div>
+          <!-- AI 问答入口 -->
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border-radius:10px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+            <div style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <span style="font-size:13px;color:#999;flex:1;">问一问这个合集的内容…</span>
+          </div>
+        </div>
+
+        <!-- 笔记列表 -->
+        <div style="flex:1;overflow-y:auto;padding:12px 16px;">
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">Q2 产品路线图评审会</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">核心决策：MiClaw 集成作为 Q2 P0 优先级，文件理解功能降级为 P1…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>今天 14:20</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb;">🔊 23:15</span>
+            </div>
+          </div>
+
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">AI 笔记内测复盘会</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">内测用户反馈汇总，语音转写准确率 96%，用户满意度 4.2/5…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>昨天 16:00</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb;">🔊 45:20</span>
+            </div>
+          </div>
+
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">MiClaw 集成方案评审</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">确定 Tool 清单和数据接入协议，笔记作为内容助手主界面…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>3/27 周四</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb;">🔊 32:10</span>
+            </div>
+          </div>
+
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">设计评审 · 首页改造方案</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">首页信息流方案确定，采用时间流+智能文件夹双维度…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>3/25 周二</span>
+              <span style="margin-left:auto;font-size:10px;color:#bbb;">🔊 28:45</span>
+            </div>
+          </div>
+
+          <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">产品周会 · 3月第3周</div>
+            <div style="font-size:13px;color:#666;line-height:1.5;margin-top:6px;">本周进度同步，各模块开发进展和风险点…</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#999;">
+              <span>3/21 周五</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:64px;background:#fff;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding-bottom:4px;">
+          <!-- 合集级问答浮动按钮 -->
+          <div style="padding:10px 20px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);border-radius:24px;display:flex;align-items:center;gap:8px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 4px 16px rgba(168,85,247,.3);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            问一问这个合集
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 合集问答态 -->
+    <div class="phone-col">
+      <div class="phone-label">合集 · AI 问答</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="home-status"><span class="time">14:40</span><span class="icons">📶 🔋</span></div>
+        <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:22px;color:#333;cursor:pointer;">‹</span>
+            <span style="font-size:16px;font-weight:600;">会议纪要 · 问答</span>
+          </div>
+        </div>
+
+        <!-- 对话区域 -->
+        <div style="flex:1;overflow-y:auto;padding:16px;">
+          <!-- 用户消息 -->
+          <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+            <div style="max-width:75%;padding:10px 14px;background:#FF6900;color:#fff;border-radius:16px 16px 4px 16px;font-size:14px;line-height:1.6;">
+              这个季度的会议里，关于 MiClaw 集成都做了哪些决策？
+            </div>
+          </div>
+
+          <!-- AI 回答 -->
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div style="max-width:80%;padding:12px 14px;background:#f5f5f5;border-radius:4px 16px 16px 16px;font-size:14px;line-height:1.7;color:#333;">
+              根据会议纪要合集中的 12 篇笔记，关于 MiClaw 集成的关键决策有：
+              <div style="margin-top:8px;padding:8px 10px;background:#fff;border-radius:8px;border-left:3px solid #2B7DE9;font-size:13px;line-height:1.6;">
+                <div style="font-weight:600;color:#1e40af;margin-bottom:4px;">Q2 路线图评审（3/30）</div>
+                · MiClaw 集成确定为 Q2 P0 优先级<br>
+                · 文件理解功能降级为 P1
+              </div>
+              <div style="margin-top:6px;padding:8px 10px;background:#fff;border-radius:8px;border-left:3px solid #2B7DE9;font-size:13px;line-height:1.6;">
+                <div style="font-weight:600;color:#1e40af;margin-bottom:4px;">集成方案评审（3/27）</div>
+                · 确定 Tool 清单：创建/编辑/搜索/摘要等 9 个接口<br>
+                · 数据接入协议采用 MCP 标准
+              </div>
+              <div style="margin-top:8px;font-size:12px;color:#999;">
+                来源：Q2 产品路线图评审会、MiClaw 集成方案评审 等 3 篇笔记
+              </div>
+            </div>
+          </div>
+
+          <!-- 快捷追问 -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding-left:36px;">
+            <div style="padding:6px 12px;background:#fff;border:1px solid #e0e0e0;border-radius:16px;font-size:12px;color:#666;cursor:pointer;">具体的 Tool 清单有哪些？</div>
+            <div style="padding:6px 12px;background:#fff;border:1px solid #e0e0e0;border-radius:16px;font-size:12px;color:#666;cursor:pointer;">还有哪些待办没完成？</div>
+          </div>
+        </div>
+
+        <!-- 输入框 -->
+        <div style="padding:8px 16px 20px;border-top:1px solid #f0f0f0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f5f5f5;border-radius:24px;">
+            <input type="text" placeholder="继续追问…" style="flex:1;border:none;background:none;outline:none;font-size:14px;color:#333;font-family:inherit;" readonly>
+            <div style="width:32px;height:32px;border-radius:16px;background:linear-gradient(135deg,#a78bfa,#f472b6,#fb923c);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+  document.querySelectorAll('.scene-panel').forEach(function(p, i) { p.classList.toggle('active', i === idx); });
+}
+</script>
+
+</body>
+</html>

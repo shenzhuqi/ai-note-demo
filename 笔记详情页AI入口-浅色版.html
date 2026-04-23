@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔记详情页AI入口 · 浅色版交互演示</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"SF Pro Display","PingFang SC",sans-serif;background:#f0f0f5;color:#1a1a1a;-webkit-font-smoothing:antialiased}
+.page-header{text-align:center;padding:48px 20px 12px}
+.page-header h1{font-size:22px;font-weight:700;color:#1a1a1a}
+.page-header p{color:#999;font-size:13px;margin-top:4px}
+.tip-bar{text-align:center;padding:8px 20px 32px}
+.tip-bar span{font-size:12px;color:#fff;background:#1a1a1a;padding:6px 16px;border-radius:100px}
+.schemes{max-width:1400px;margin:0 auto;padding:0 16px 80px}
+.scheme{margin-bottom:64px}
+.scheme-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:3px 10px;border-radius:100px;margin-bottom:8px}
+.scheme-title{font-size:18px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
+.scheme-desc{font-size:13px;color:#888;line-height:1.6;margin-bottom:20px;max-width:580px}
+.states-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+.states-row::-webkit-scrollbar{display:none}
+.state-col{flex:0 0 auto;text-align:center}
+.state-label{font-size:11px;color:#999;margin-bottom:6px;font-weight:500}
+.arrow-col{flex:0 0 20px;display:flex;align-items:center;justify-content:center;color:#ccc;padding-top:16px;font-size:18px}
+/* Phone frame */
+.phone{width:268px;height:560px;background:#fff;border-radius:40px;overflow:hidden;position:relative;box-shadow:0 2px 20px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.04)}
+.phone-status{padding:12px 20px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#1a1a1a}
+.phone-nav{padding:10px 14px;display:flex;align-items:center;gap:10px}
+.phone-nav .back{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.phone-nav .title{flex:1;font-size:16px;font-weight:600;color:#1a1a1a}
+.note-body{padding:0 16px;font-size:13px;line-height:1.85;color:#666}
+.note-body .section-head{font-size:13px;font-weight:600;color:#1a1a1a;margin:14px 0 6px}
+.audio-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f7f7fa;border-radius:10px;margin-bottom:14px}
+.audio-bar .play{width:28px;height:28px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.audio-bar .info{flex:1;font-size:11px;color:#999}
+.audio-bar .prog{height:3px;background:#e8e8ee;border-radius:2px;margin-top:3px}
+.audio-bar .prog-fill{height:100%;background:#4f46e5;border-radius:2px;width:35%}
+/* Animations */
+@keyframes pulse-sm{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.75)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes wave-bar{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.3)}}
+@keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes dot-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(79,70,229,0.15)}50%{box-shadow:0 0 0 6px rgba(79,70,229,0.08)}}
+@keyframes fade-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page-header">
+<h1>笔记详情页 · 底部AI入口</h1>
+<p>浅色模式 · 单击对话 / 长按语音 · 可交互演示</p>
+</div>
+<div class="tip-bar"><span>点击底部入口试试 · 长按底部入口试试</span></div>
+<div class="schemes">
+
+<!-- ========== 方案 A: Capsule ========== -->
+<section class="scheme">
+<span class="scheme-tag" style="color:#4f46e5;background:rgba(79,70,229,0.08)">方案 A</span>
+<h2 class="scheme-title">Soft Capsule — 柔光胶囊</h2>
+<p class="scheme-desc">底部居中一颗圆角胶囊，带微妙的呼吸光晕。单击上滑出对话面板，长按展开为语音录入条。iOS 原生感，最克制。</p>
+<div class="states-row">
+
+<!-- A1: 默认 -->
+<div class="state-col">
+<div class="state-label">默认态</div>
+<div class="phone" id="phoneA1">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+</div>
+<div class="note-body" style="height:340px;overflow:hidden">
+<div class="audio-bar">
+<div class="play"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="6,3 20,12 6,21"/></svg></div>
+<div style="flex:1"><div class="info">录音 · 00:07:32</div><div class="prog"><div class="prog-fill"></div></div></div>
+</div>
+<div class="section-head">会议概要</div>
+<div>本次会议围绕笔记首页改版方案展开讨论，确定了合集入口采用横滑卡片形式，首页信息架构分为"最近"和"AI推荐"两个tab。</div>
+<div class="section-head">会议共识</div>
+<div style="margin-bottom:4px">1. 合集入口改为横滑卡片，释放纵向空间</div>
+<div style="margin-bottom:4px">2. 首页顶部保留搜索栏，下方分tab展示</div>
+<div>3. AI推荐tab的排序算法需要李响本周内确认</div>
+</div>
+<!-- Bottom entry -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px 26px;background:linear-gradient(transparent,#fff 40%)">
+<div style="display:flex;justify-content:center">
+<div class="ai-capsule" style="display:inline-flex;align-items:center;gap:7px;background:rgba(79,70,229,0.06);border:1px solid rgba(79,70,229,0.12);border-radius:100px;padding:9px 18px;cursor:pointer;animation:glow 3s ease-in-out infinite;transition:all 0.2s">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+<span style="font-size:13px;color:#4f46e5;font-weight:500">问一问这篇笔记</span>
+</div>
+</div>
+<div style="text-align:center;margin-top:5px;font-size:10px;color:#c4c4c4">单击对话 · 长按语音指令</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- A2: 单击 - 对话面板 -->
+<div class="state-col">
+<div class="state-label">单击 · 对话面板</div>
+<div class="phone" id="phoneA2">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+<!-- Dimmed note -->
+<div style="padding:0 16px;opacity:0.25;height:60px;overflow:hidden;font-size:13px;color:#888;line-height:1.8">
+<div>本次会议围绕笔记首页改版方案展开讨论...</div>
+</div>
+<!-- Chat panel -->
+<div style="position:absolute;bottom:0;left:0;right:0;top:140px;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.06);display:flex;flex-direction:column;animation:slide-up 0.3s ease-out">
+<div style="display:flex;justify-content:center;padding:8px"><div style="width:32px;height:4px;border-radius:2px;background:#e0e0e0"></div></div>
+<div style="padding:4px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f5">
+<span style="font-size:15px;font-weight:600">AI 助手</span>
+<span style="font-size:11px;color:#4f46e5;background:rgba(79,70,229,0.06);padding:3px 8px;border-radius:4px">基于当前笔记</span>
+</div>
+<!-- Chat content -->
+<div style="flex:1;padding:14px 16px;overflow:hidden">
+<!-- AI message -->
+<div style="display:flex;gap:8px;margin-bottom:14px">
+<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+</div>
+<div style="background:#f7f7fa;border-radius:4px 14px 14px 14px;padding:10px 12px;max-width:190px">
+<div style="font-size:13px;color:#444;line-height:1.6">这篇纪要有 3 条共识和 3 条待办。你想了解或修改什么？</div>
+</div>
+</div>
+<!-- Quick chips -->
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding-left:34px">
+<div style="font-size:11px;color:#4f46e5;background:rgba(79,70,229,0.05);border:1px solid rgba(79,70,229,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">总结核心结论</div>
+<div style="font-size:11px;color:#4f46e5;background:rgba(79,70,229,0.05);border:1px solid rgba(79,70,229,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">列出全部待办</div>
+<div style="font-size:11px;color:#4f46e5;background:rgba(79,70,229,0.05);border:1px solid rgba(79,70,229,0.12);padding:6px 10px;border-radius:8px;cursor:pointer">翻译成英文</div>
+</div>
+<!-- User message -->
+<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+<div style="background:#4f46e5;border-radius:14px 4px 14px 14px;padding:10px 12px;max-width:190px">
+<div style="font-size:13px;color:#fff;line-height:1.6">把第三条共识的截止时间改成下周五</div>
+</div>
+</div>
+<!-- AI response -->
+<div style="display:flex;gap:8px">
+<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+</div>
+<div style="background:#f7f7fa;border-radius:4px 14px 14px 14px;padding:10px 12px;max-width:190px">
+<div style="font-size:13px;color:#444;line-height:1.6">已修改：将"本周内"→"下周五前"。<span style="color:#4f46e5;cursor:pointer">查看变更</span></div>
+</div>
+</div>
+</div>
+<!-- Input bar -->
+<div style="padding:8px 12px 24px;border-top:1px solid #f0f0f5;display:flex;gap:8px;align-items:center">
+<div style="flex:1;background:#f7f7fa;border-radius:20px;padding:10px 14px;font-size:13px;color:#bbb">输入修改指令...</div>
+<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- A3: 长按 - 语音录入 -->
+<div class="state-col">
+<div class="state-label">长按 · 语音录入</div>
+<div class="phone" id="phoneA3">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title" style="opacity:0.4">产品需求讨论会</div>
+</div>
+<!-- Dimmed content -->
+<div style="padding:0 16px;opacity:0.15;filter:blur(1px);height:260px;overflow:hidden">
+<div class="audio-bar" style="opacity:0.5"><div style="height:28px"></div></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:90%"></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:70%"></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:80%"></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:60%"></div>
+</div>
+<!-- Voice overlay -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 26px;background:linear-gradient(transparent,rgba(79,70,229,0.02) 30%,#fff)">
+<!-- Realtime text -->
+<div style="text-align:center;margin-bottom:14px;padding:0 16px">
+<span style="font-size:15px;color:#1a1a1a;line-height:1.6;font-weight:500">"把第三条共识改成<span style="color:#4f46e5;font-weight:600">下周五前</span>确认"</span>
+</div>
+<!-- Waveform bar -->
+<div style="background:rgba(79,70,229,0.05);border:1px solid rgba(79,70,229,0.12);border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+<div style="width:8px;height:8px;border-radius:50%;background:#4f46e5;animation:pulse-sm 1.5s infinite;flex-shrink:0"></div>
+<div style="flex:1;display:flex;align-items:center;gap:1.5px;height:24px" id="waveA3"></div>
+<span style="font-size:12px;color:#4f46e5;font-weight:600;font-variant-numeric:tabular-nums;flex-shrink:0">0:03</span>
+</div>
+<div style="text-align:center;margin-top:8px;font-size:11px;color:#c4c4c4">松手发送 · 上滑取消</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- A4: 处理中 -->
+<div class="state-col">
+<div class="state-label">AI 处理中</div>
+<div class="phone" id="phoneA4">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+<div class="note-body" style="height:340px;overflow:hidden">
+<div class="audio-bar">
+<div class="play"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="6,3 20,12 6,21"/></svg></div>
+<div style="flex:1"><div class="info">录音 · 00:07:32</div><div class="prog"><div class="prog-fill"></div></div></div>
+</div>
+<div class="section-head">会议概要</div>
+<div style="margin-bottom:14px">本次会议围绕笔记首页改版方案展开讨论。</div>
+<div class="section-head">会议共识</div>
+<div style="margin-bottom:4px">1. 合集入口改为横滑卡片</div>
+<div style="margin-bottom:4px">2. 首页顶部保留搜索栏</div>
+<!-- Processing highlight -->
+<div style="padding:6px 8px;background:rgba(79,70,229,0.04);border:1px solid rgba(79,70,229,0.1);border-radius:6px;margin-top:4px">
+<div style="color:#aaa;font-size:12px;text-decoration:line-through">3. AI推荐tab的排序算法需要李响本周内确认</div>
+<div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+<span style="width:4px;height:4px;border-radius:50%;background:#4f46e5;animation:dot-bounce 1s infinite 0s"></span>
+<span style="width:4px;height:4px;border-radius:50%;background:#4f46e5;animation:dot-bounce 1s infinite 0.15s"></span>
+<span style="width:4px;height:4px;border-radius:50%;background:#4f46e5;animation:dot-bounce 1s infinite 0.3s"></span>
+<span style="font-size:11px;color:#4f46e5;margin-left:2px">正在修改...</span>
+</div>
+</div>
+</div>
+<!-- Bottom processing -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px 26px;background:linear-gradient(transparent,#fff 40%)">
+<div style="display:flex;justify-content:center">
+<div style="display:inline-flex;align-items:center;gap:7px;background:rgba(79,70,229,0.05);border:1px solid rgba(79,70,229,0.1);border-radius:100px;padding:9px 18px">
+<div style="width:14px;height:14px;border:2px solid rgba(79,70,229,0.2);border-top-color:#4f46e5;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+<span style="font-size:13px;color:#4f46e5">AI 正在修改笔记...</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- A5: 确认修改 -->
+<div class="state-col">
+<div class="state-label">修改确认</div>
+<div class="phone" id="phoneA5">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+<div style="display:flex;gap:10px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M3 12h18M12 3l9 9-9 9"/></svg>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+</div>
+</div>
+<div class="note-body" style="height:340px;overflow:hidden">
+<div class="audio-bar">
+<div class="play"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="6,3 20,12 6,21"/></svg></div>
+<div style="flex:1"><div class="info">录音 · 00:07:32</div><div class="prog"><div class="prog-fill"></div></div></div>
+</div>
+<div class="section-head">会议概要</div>
+<div style="margin-bottom:14px">本次会议围绕笔记首页改版方案展开讨论。</div>
+<div class="section-head">会议共识</div>
+<div style="margin-bottom:4px">1. 合集入口改为横滑卡片</div>
+<div style="margin-bottom:4px">2. 首页顶部保留搜索栏</div>
+<!-- Diff -->
+<div style="padding:8px 10px;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.15);border-radius:8px;margin-top:4px;animation:fade-in 0.4s ease-out">
+<div style="font-size:12px;color:#ef4444;text-decoration:line-through;opacity:0.5;margin-bottom:3px">3. AI推荐tab的排序算法需要李响本周内确认</div>
+<div style="font-size:13px;color:#15803d">3. AI推荐tab的排序算法需要李响<span style="background:rgba(34,197,94,0.1);padding:0 3px;border-radius:3px;font-weight:600">下周五前</span>确认</div>
+</div>
+</div>
+<!-- Bottom confirm -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px 26px;background:linear-gradient(transparent,#fff 40%)">
+<div style="display:flex;gap:10px;justify-content:center">
+<div style="display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #e5e5e5;border-radius:100px;padding:9px 18px;cursor:pointer">
+<span style="font-size:13px;color:#999">撤销</span>
+</div>
+<div style="display:inline-flex;align-items:center;gap:5px;background:#4f46e5;border-radius:100px;padding:9px 22px;cursor:pointer">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+<span style="font-size:13px;color:#fff;font-weight:500">确认修改</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+</div>
+</body>
+</html>
+</div>
+</section>
+
+<!-- ========== 方案 B: Fab + Ring ========== -->
+<section class="scheme">
+<span class="scheme-tag" style="color:#f97316;background:rgba(249,115,22,0.08)">方案 B</span>
+<h2 class="scheme-title">Fab Ring — 悬浮按钮 + 涟漪</h2>
+<p class="scheme-desc">右下角悬浮圆形按钮，单击弹出对话面板，长按时按钮放大并产生涟漪扩散效果，进入语音录入。更有"AI 生命感"，适合强调智能能力的产品。</p>
+<div class="states-row">
+
+<!-- B1: 默认 -->
+<div class="state-col">
+<div class="state-label">默认态</div>
+<div class="phone">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+<div class="note-body" style="height:370px;overflow:hidden">
+<div class="audio-bar">
+<div class="play" style="background:#f97316"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="6,3 20,12 6,21"/></svg></div>
+<div style="flex:1"><div class="info">录音 · 00:07:32</div><div class="prog"><div class="prog-fill" style="background:#f97316"></div></div></div>
+</div>
+<div class="section-head">会议概要</div>
+<div style="margin-bottom:14px">本次会议围绕笔记首页改版方案展开讨论，确定了合集入口采用横滑卡片形式。</div>
+<div class="section-head">会议共识</div>
+<div style="margin-bottom:4px">1. 合集入口改为横滑卡片，释放纵向空间</div>
+<div style="margin-bottom:4px">2. 首页顶部保留搜索栏，下方分tab展示</div>
+<div style="margin-bottom:4px">3. AI推荐tab的排序算法需要李响本周内确认</div>
+<div class="section-head">待办事项</div>
+<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #d0d0d0"></div>输出首页信息架构终稿</div>
+<div style="display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #d0d0d0"></div>确认排序算法逻辑</div>
+</div>
+<!-- FAB -->
+<div style="position:absolute;bottom:28px;right:20px">
+<div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 4px 16px rgba(249,115,22,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+</div>
+<div style="text-align:center;margin-top:4px;font-size:9px;color:#ccc">长按语音</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- B2: 长按语音 -->
+<div class="state-col">
+<div class="state-label">长按 · 涟漪语音</div>
+<div class="phone">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title" style="opacity:0.4">产品需求讨论会</div>
+</div>
+<div style="padding:0 16px;opacity:0.12;height:200px;overflow:hidden">
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:90%"></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:70%"></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:80%"></div>
+</div>
+<!-- Voice panel -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:0 16px 28px">
+<!-- Realtime text -->
+<div style="text-align:center;margin-bottom:20px;padding:0 12px">
+<div style="font-size:15px;color:#1a1a1a;line-height:1.6;font-weight:500">"在待办里加一条<span style="color:#f97316;font-weight:600">对齐接口方案</span>"</div>
+</div>
+<!-- Centered orb -->
+<div style="display:flex;flex-direction:column;align-items:center">
+<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 0 40px rgba(249,115,22,0.25);display:flex;align-items:center;justify-content:center;position:relative">
+<div style="position:absolute;inset:-10px;border-radius:50%;border:1.5px solid rgba(249,115,22,0.2);animation:ring-out 2s ease-out infinite"></div>
+<div style="position:absolute;inset:-24px;border-radius:50%;border:1px solid rgba(249,115,22,0.08);animation:ring-out 2s ease-out infinite 0.4s"></div>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+</div>
+<div style="margin-top:14px;font-size:11px;color:#ccc">松手发送 · 上滑取消</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- B3: 修改确认 -->
+<div class="state-col">
+<div class="state-label">修改确认</div>
+<div class="phone">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+<div style="display:flex;gap:10px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+</div>
+</div>
+<div class="note-body" style="height:340px;overflow:hidden">
+<div class="audio-bar">
+<div class="play" style="background:#f97316"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="6,3 20,12 6,21"/></svg></div>
+<div style="flex:1"><div class="info">录音 · 00:07:32</div><div class="prog"><div class="prog-fill" style="background:#f97316"></div></div></div>
+</div>
+<div class="section-head">会议共识</div>
+<div style="margin-bottom:4px">1. 合集入口改为横滑卡片</div>
+<div style="margin-bottom:4px">2. 首页顶部保留搜索栏</div>
+<div style="margin-bottom:4px">3. AI推荐tab排序算法需李响本周内确认</div>
+<div class="section-head">待办事项</div>
+<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #d0d0d0"></div>输出首页信息架构终稿</div>
+<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #d0d0d0"></div>确认排序算法逻辑</div>
+<!-- New item -->
+<div style="margin-top:4px;padding:8px 10px;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.15);border-radius:8px;animation:fade-in 0.4s ease-out">
+<div style="display:flex;align-items:center;gap:6px">
+<div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #22c55e;flex-shrink:0"></div>
+<span style="font-size:13px;color:#15803d">对齐接口方案</span>
+<span style="font-size:9px;color:#f97316;background:rgba(249,115,22,0.08);padding:2px 6px;border-radius:3px;margin-left:auto">AI 新增</span>
+</div>
+</div>
+</div>
+<!-- Bottom confirm -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px 26px;background:linear-gradient(transparent,#fff 40%)">
+<div style="display:flex;gap:10px;justify-content:center">
+<div style="display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #e5e5e5;border-radius:100px;padding:9px 18px;cursor:pointer"><span style="font-size:13px;color:#999">撤销</span></div>
+<div style="display:inline-flex;align-items:center;gap:5px;background:#f97316;border-radius:100px;padding:9px 22px;cursor:pointer">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+<span style="font-size:13px;color:#fff;font-weight:500">确认</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ========== 方案 C: Bottom Bar ========== -->
+<section class="scheme">
+<span class="scheme-tag" style="color:#0ea5e9;background:rgba(14,165,233,0.08)">方案 C</span>
+<h2 class="scheme-title">Smart Bar — 底部智能输入条</h2>
+<p class="scheme-desc">底部是一条类似搜索框的输入条，左侧文字提示，右侧麦克风图标。单击输入条展开对话面板，长按麦克风图标进入语音录入。最直觉，学习成本最低。</p>
+<div class="states-row">
+
+<!-- C1: 默认 -->
+<div class="state-col">
+<div class="state-label">默认态</div>
+<div class="phone">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+<div class="note-body" style="height:340px;overflow:hidden">
+<div class="audio-bar">
+<div class="play" style="background:#0ea5e9"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="6,3 20,12 6,21"/></svg></div>
+<div style="flex:1"><div class="info">录音 · 00:07:32</div><div class="prog"><div class="prog-fill" style="background:#0ea5e9"></div></div></div>
+</div>
+<div class="section-head">会议概要</div>
+<div style="margin-bottom:14px">本次会议围绕笔记首页改版方案展开讨论，确定了合集入口采用横滑卡片形式。</div>
+<div class="section-head">会议共识</div>
+<div style="margin-bottom:4px">1. 合集入口改为横滑卡片</div>
+<div style="margin-bottom:4px">2. 首页顶部保留搜索栏</div>
+<div>3. AI推荐tab排序算法需李响本周内确认</div>
+</div>
+<!-- Bottom smart bar -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:8px 14px 24px;background:linear-gradient(transparent,#fff 30%)">
+<div style="display:flex;align-items:center;background:#f7f7fa;border:1px solid #ebebf0;border-radius:14px;padding:4px 4px 4px 14px;gap:8px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" style="flex-shrink:0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+<span style="flex:1;font-size:13px;color:#bbb">对这篇笔记提问或下指令...</span>
+<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0284c7);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+</div>
+</div>
+<div style="display:flex;justify-content:center;gap:16px;margin-top:6px">
+<span style="font-size:10px;color:#ccc">点击输入条 → 对话</span>
+<span style="font-size:10px;color:#ccc">长按麦克风 → 语音</span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- C2: 长按麦克风 -->
+<div class="state-col">
+<div class="state-label">长按麦克风 · 语音</div>
+<div class="phone">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title" style="opacity:0.4">产品需求讨论会</div>
+</div>
+<div style="padding:0 16px;opacity:0.12;height:240px;overflow:hidden">
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:90%"></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:70%"></div>
+<div style="height:10px;background:#f0f0f5;border-radius:4px;margin-bottom:8px;width:80%"></div>
+</div>
+<!-- Voice overlay -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:16px 14px 24px;background:linear-gradient(transparent,rgba(14,165,233,0.02) 20%,#fff)">
+<div style="text-align:center;margin-bottom:14px;padding:0 12px">
+<div style="font-size:15px;color:#1a1a1a;line-height:1.6;font-weight:500">"把<span style="color:#0ea5e9;font-weight:600">本周内</span>改成<span style="color:#0ea5e9;font-weight:600">下周五前</span>"</div>
+</div>
+<!-- Waveform in bar shape -->
+<div style="display:flex;align-items:center;background:rgba(14,165,233,0.05);border:1px solid rgba(14,165,233,0.15);border-radius:14px;padding:10px 14px;gap:10px">
+<div style="width:8px;height:8px;border-radius:50%;background:#0ea5e9;animation:pulse-sm 1.5s infinite;flex-shrink:0"></div>
+<div style="flex:1;display:flex;align-items:center;gap:1.5px;height:24px" id="waveC2"></div>
+<span style="font-size:12px;color:#0ea5e9;font-weight:600;font-variant-numeric:tabular-nums;flex-shrink:0">0:02</span>
+</div>
+<div style="text-align:center;margin-top:8px;font-size:11px;color:#ccc">松手发送 · 上滑取消</div>
+</div>
+</div>
+</div>
+
+<div class="arrow-col">→</div>
+
+<!-- C3: 单击对话 -->
+<div class="state-col">
+<div class="state-label">单击 · 对话面板</div>
+<div class="phone">
+<div class="phone-status"><span>9:41</span><span style="font-size:11px;color:#999">5G</span></div>
+<div class="phone-nav">
+<div class="back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div>
+<div class="title">产品需求讨论会</div>
+</div>
+<div style="padding:0 16px;opacity:0.2;height:50px;overflow:hidden;font-size:13px;color:#888">本次会议围绕笔记首页改版...</div>
+<!-- Chat panel -->
+<div style="position:absolute;bottom:0;left:0;right:0;top:140px;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.06);display:flex;flex-direction:column">
+<div style="display:flex;justify-content:center;padding:8px"><div style="width:32px;height:4px;border-radius:2px;background:#e0e0e0"></div></div>
+<div style="padding:4px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f5">
+<span style="font-size:15px;font-weight:600">AI 助手</span>
+<span style="font-size:11px;color:#0ea5e9;background:rgba(14,165,233,0.06);padding:3px 8px;border-radius:4px">基于当前笔记</span>
+</div>
+<div style="flex:1;padding:14px 16px;overflow:hidden">
+<div style="display:flex;gap:8px;margin-bottom:14px">
+<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#0284c7);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+</div>
+<div style="background:#f7f7fa;border-radius:4px 14px 14px 14px;padding:10px 12px;max-width:190px">
+<div style="font-size:13px;color:#444;line-height:1.6">这篇纪要有 3 条共识和 3 条待办，需要我帮你做什么？</div>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:34px">
+<div style="font-size:11px;color:#0ea5e9;background:rgba(14,165,233,0.05);border:1px solid rgba(14,165,233,0.12);padding:6px 10px;border-radius:8px">总结核心结论</div>
+<div style="font-size:11px;color:#0ea5e9;background:rgba(14,165,233,0.05);border:1px solid rgba(14,165,233,0.12);padding:6px 10px;border-radius:8px">列出全部待办</div>
+<div style="font-size:11px;color:#0ea5e9;background:rgba(14,165,233,0.05);border:1px solid rgba(14,165,233,0.12);padding:6px 10px;border-radius:8px">修改内容</div>
+<div style="font-size:11px;color:#0ea5e9;background:rgba(14,165,233,0.05);border:1px solid rgba(14,165,233,0.12);padding:6px 10px;border-radius:8px">翻译成英文</div>
+</div>
+</div>
+<!-- Input bar -->
+<div style="padding:8px 12px 24px;border-top:1px solid #f0f0f5;display:flex;gap:8px;align-items:center">
+<div style="flex:1;background:#f7f7fa;border-radius:20px;padding:10px 14px;font-size:13px;color:#bbb">输入指令...</div>
+<div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0284c7);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ========== 对比表 ========== -->
+<section class="scheme" style="margin-top:8px">
+<span class="scheme-tag" style="color:#666;background:rgba(0,0,0,0.04)">对比</span>
+<h2 class="scheme-title">三种方案对比</h2>
+<div style="overflow-x:auto;margin-top:16px">
+<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:580px">
+<thead>
+<tr style="border-bottom:2px solid #eee">
+<th style="text-align:left;padding:10px 14px;color:#999;font-weight:500">维度</th>
+<th style="text-align:center;padding:10px 14px;color:#4f46e5;font-weight:600">A · Soft Capsule</th>
+<th style="text-align:center;padding:10px 14px;color:#f97316;font-weight:600">B · Fab Ring</th>
+<th style="text-align:center;padding:10px 14px;color:#0ea5e9;font-weight:600">C · Smart Bar</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-bottom:1px solid #f0f0f5">
+<td style="padding:10px 14px;color:#999">入口形态</td>
+<td style="padding:10px 14px;text-align:center;color:#444">居中胶囊按钮</td>
+<td style="padding:10px 14px;text-align:center;color:#444">右下悬浮圆按钮</td>
+<td style="padding:10px 14px;text-align:center;color:#444">底部输入条</td>
+</tr>
+<tr style="border-bottom:1px solid #f0f0f5">
+<td style="padding:10px 14px;color:#999">单击行为</td>
+<td style="padding:10px 14px;text-align:center;color:#444">上滑出对话面板</td>
+<td style="padding:10px 14px;text-align:center;color:#444">弹出对话面板</td>
+<td style="padding:10px 14px;text-align:center;color:#444">展开对话面板</td>
+</tr>
+<tr style="border-bottom:1px solid #f0f0f5">
+<td style="padding:10px 14px;color:#999">长按行为</td>
+<td style="padding:10px 14px;text-align:center;color:#444">胶囊→声波条</td>
+<td style="padding:10px 14px;text-align:center;color:#444">按钮放大+涟漪</td>
+<td style="padding:10px 14px;text-align:center;color:#444">麦克风→声波条</td>
+</tr>
+<tr style="border-bottom:1px solid #f0f0f5">
+<td style="padding:10px 14px;color:#999">内容遮挡</td>
+<td style="padding:10px 14px;text-align:center;color:#444">1行</td>
+<td style="padding:10px 14px;text-align:center;color:#444">不遮挡（悬浮）</td>
+<td style="padding:10px 14px;text-align:center;color:#444">1行</td>
+</tr>
+<tr style="border-bottom:1px solid #f0f0f5">
+<td style="padding:10px 14px;color:#999">学习成本</td>
+<td style="padding:10px 14px;text-align:center;color:#444">中</td>
+<td style="padding:10px 14px;text-align:center;color:#444">中</td>
+<td style="padding:10px 14px;text-align:center;color:#444">低（最直觉）</td>
+</tr>
+<tr>
+<td style="padding:10px 14px;color:#999">风格参考</td>
+<td style="padding:10px 14px;text-align:center;color:#444">iOS + Linear</td>
+<td style="padding:10px 14px;text-align:center;color:#444">Material + Humane</td>
+<td style="padding:10px 14px;text-align:center;color:#444">ChatGPT + Arc</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+</div>
+
+<style>
+@keyframes ring-out{0%{transform:scale(0.9);opacity:0.4}100%{transform:scale(1.6);opacity:0}}
+</style>
+
+<script>
+function makeWave(id,color,count){
+  var c=document.getElementById(id);if(!c)return;
+  for(var i=0;i<(count||24);i++){
+    var b=document.createElement('div');
+    b.style.cssText='width:2px;border-radius:1px;background:'+color+';flex-shrink:0;';
+    b.style.height=(Math.random()*14+4)+'px';
+    b.style.animation='wave-bar 1s ease-in-out infinite '+(i*0.06)+'s';
+    c.appendChild(b);
+  }
+}
+makeWave('waveA3','#4f46e5',26);
+makeWave('waveC2','#0ea5e9',26);
+</script>
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音频总结浮窗 · 交互 Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; background: #f0f0f5; color: #1a1a1a; }
+  .page-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
+  .page-header h1 { font-size: 17px; font-weight: 600; }
+  .page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #eee; padding: 0 16px; position: sticky; top: 61px; z-index: 10; }
+  .tab { padding: 12px 16px; font-size: 14px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
+  .tab.active { color: #FF6900; border-bottom-color: #FF6900; font-weight: 600; }
+  .scene-panel { display: none; padding: 16px; }
+  .scene-panel.active { display: block; }
+  .scene-desc { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #555; }
+  .scene-desc strong { color: #1a1a1a; }
+  .phone-wrap { display: flex; justify-content: center; padding: 8px 0 24px; }
+  .phone { width: 375px; height: 750px; background: #1a1a1a; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.3); position: relative; overflow: hidden; }
+  .phone-screen { width: 100%; height: 100%; background: #fff; border-radius: 34px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+  .note-nav { height: 48px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+  .note-nav .back { font-size: 20px; color: #333; cursor: pointer; }
+  .note-nav .actions { display: flex; gap: 16px; font-size: 16px; color: #666; }
+  .note-title { padding: 16px 16px 8px; font-size: 17px; font-weight: 600; color: #1a1a1a; flex-shrink: 0; }
+  .note-body { flex: 1; overflow-y: auto; padding: 0 16px 16px; font-size: 14px; line-height: 1.8; color: #333; }
+  .note-body p { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>音频总结浮窗 · 交互 Demo</h1>
+  <p>编辑中导入音频 → AI解析完成后 → 浮窗提示插入总结</p>
+</div>
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab(0)">完整流程</div>
+  <div class="tab" onclick="switchTab(1)">浮窗交互细节</div>
+  <div class="tab" onclick="switchTab(2)">插入位置选择</div>
+</div>
+<style>
+  /* 录音条 */
+  .audio-bar { background: #f8f8f8; border-radius: 12px; padding: 12px; margin: 12px 0; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all .2s; position: relative; }
+  .audio-bar:hover { background: #f0f0f0; }
+  .audio-bar .play-btn { width: 36px; height: 36px; background: #FF6900; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; flex-shrink: 0; }
+  .audio-bar .wave { flex: 1; height: 24px; display: flex; align-items: center; gap: 2px; }
+  .audio-bar .wave span { display: block; width: 3px; background: #ccc; border-radius: 2px; }
+  .audio-bar .duration { font-size: 12px; color: #999; flex-shrink: 0; }
+  .audio-bar .ai-tag { font-size: 11px; color: #999; display: flex; align-items: center; gap: 4px; }
+  .audio-bar .ai-tag .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .audio-bar-parsing .ai-tag .dot { background: #FF6900; animation: pulse 1s infinite; }
+  .audio-bar-done .ai-tag .dot { background: #4CAF50; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* 浮窗 */
+  .float-toast { position: absolute; left: 16px; right: 16px; background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,.15), 0 2px 8px rgba(0,0,0,.08); padding: 14px 16px; z-index: 30; transform: translateY(20px); opacity: 0; transition: all .35s cubic-bezier(.4,0,.2,1); pointer-events: none; }
+  .float-toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+  .float-toast .toast-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .float-toast .toast-title { font-size: 13px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 6px; }
+  .float-toast .toast-title .ai-icon { width: 20px; height: 20px; background: linear-gradient(135deg, #FF6900, #FF8F40); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; }
+  .float-toast .toast-close { width: 24px; height: 24px; border-radius: 12px; background: #f0f0f0; border: none; font-size: 14px; color: #999; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .float-toast .toast-preview { font-size: 12px; color: #666; line-height: 1.6; max-height: 48px; overflow: hidden; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+  .float-toast .toast-actions { display: flex; gap: 8px; }
+  .float-toast .toast-btn { flex: 1; height: 36px; border-radius: 18px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; }
+  .toast-btn-secondary { background: #f5f5f5; color: #666; }
+  .toast-btn-primary { background: #FF6900; color: #fff; }
+  .toast-btn-primary:active { background: #e55d00; }
+
+  /* 浮窗展开态 */
+  .float-toast.expanded { left: 12px; right: 12px; }
+  .float-toast .toast-full-preview { font-size: 13px; color: #333; line-height: 1.7; max-height: 180px; overflow-y: auto; margin-bottom: 12px; padding: 10px 12px; background: #fafafa; border-radius: 10px; display: none; }
+  .float-toast.expanded .toast-preview { display: none; }
+  .float-toast.expanded .toast-full-preview { display: block; }
+  .float-toast.expanded .toast-actions .toast-btn-secondary { display: none; }
+
+  /* 插入位置选择 */
+  .insert-options { display: none; margin-bottom: 10px; }
+  .float-toast.show-options .insert-options { display: block; }
+  .float-toast.show-options .toast-actions { display: none; }
+  .float-toast.show-options .toast-preview { display: none; }
+  .insert-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background .15s; margin-bottom: 6px; }
+  .insert-option:hover { background: #f5f5f5; }
+  .insert-option.selected { background: #FFF3E8; }
+  .insert-option .opt-icon { width: 32px; height: 32px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .insert-option.selected .opt-icon { background: #FF6900; color: #fff; }
+  .insert-option .opt-text { font-size: 13px; color: #333; }
+  .insert-option .opt-desc { font-size: 11px; color: #999; margin-top: 2px; }
+  .insert-confirm-bar { display: flex; gap: 8px; margin-top: 8px; }
+  .insert-confirm-bar .toast-btn { flex: 1; }
+
+  /* 底部工具栏 */
+  .editor-toolbar { height: 48px; background: #fff; border-top: 1px solid #f0f0f0; display: flex; align-items: center; padding: 0 16px; gap: 20px; flex-shrink: 0; }
+  .editor-toolbar span { font-size: 18px; color: #666; cursor: pointer; }
+
+  /* 插入成功提示 */
+  .insert-success { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(.8); background: rgba(0,0,0,.75); color: #fff; padding: 16px 24px; border-radius: 12px; font-size: 14px; text-align: center; opacity: 0; transition: all .3s; pointer-events: none; z-index: 40; }
+  .insert-success.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+  /* 高亮插入内容 */
+  .inserted-content { background: #FFF8F0; border-left: 3px solid #FF6900; padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 8px 0; font-size: 13px; line-height: 1.7; color: #333; animation: fadeHighlight 2s ease-out; }
+  @keyframes fadeHighlight { 0%{background:#FFE8CC} 100%{background:#FFF8F0} }
+
+  .trigger-btn { background: #FF6900; color: #fff; border: none; border-radius: 20px; padding: 8px 20px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+  .trigger-btn:active { opacity: .8; }
+  .step-indicator { display: flex; justify-content: center; gap: 6px; margin-bottom: 12px; }
+  .step-dot { width: 8px; height: 8px; border-radius: 4px; background: #ddd; transition: all .3s; }
+  .step-dot.active { background: #FF6900; width: 24px; }
+
+  /* 解析状态文字 */
+  .parsing-status { font-size: 12px; color: #999; display: flex; align-items: center; gap: 4px; margin-top: -8px; margin-bottom: 8px; }
+  .parsing-status .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid #ddd; border-top-color: #FF6900; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+</style>
+
+<!-- ===== 场景1：完整流程 ===== -->
+<div class="scene-panel active" id="panel-0">
+  <div class="scene-desc">
+    <strong>完整流程演示</strong><br>
+    用户在编辑笔记时导入音频 → 点击录音条触发解析 → AI解析完成 → 录音条下方弹出浮窗 → 用户可预览总结、一键插入正文。<br>点击下方按钮逐步体验。
+  </div>
+  <div class="step-indicator" id="steps-0">
+    <div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div>
+  </div>
+  <div class="phone-wrap">
+    <div class="phone"><div class="phone-screen" id="screen-0">
+      <div class="note-nav"><span class="back">‹</span><div class="actions"><span>↗</span><span>⋯</span></div></div>
+      <div class="note-title">中国高端手机市场调研报告</div>
+      <div class="note-body" id="note-body-0">
+        <p>在全球智能手机市场增长放缓的大背景下，中国高端手机市场却呈现出逆势增长的态势。</p>
+        <p>核心发现：用户对AI功能的关注度同比提升47%，其中语音助手和智能笔记是最受期待的两个方向。</p>
+        <div class="audio-bar" id="audio-bar-0" onclick="handleAudioClick(0)">
+          <div class="play-btn">▶</div>
+          <div class="wave" id="wave-0"></div>
+          <div class="duration">09:27</div>
+        </div>
+        <div class="parsing-status" id="parsing-0" style="display:none"><span class="spin"></span> AI分析语音中...</div>
+        <p id="tail-text-0">后续需要补充的内容：竞品对比数据、用户画像分析、渠道策略建议。</p>
+      </div>
+      <div class="float-toast" id="toast-0" style="bottom:60px;">
+        <div class="toast-header">
+          <div class="toast-title"><span class="ai-icon">AI</span> 总结已生成</div>
+          <button class="toast-close" onclick="closeToast(0)">✕</button>
+        </div>
+        <div class="toast-preview">高端用户对AI功能的需求正在从"尝鲜"转向"刚需"，47%的受访者表示AI功能会影响购买决策。语音助手和智能笔记是最受期待的两个方向...</div>
+        <div class="toast-full-preview">
+          <p style="font-weight:600;margin-bottom:6px">📋 会议讨论要点</p>
+          <p>1. 高端用户对AI功能的需求正在从"尝鲜"转向"刚需"，47%的受访者表示AI功能会影响购买决策</p>
+          <p>2. 语音助手和智能笔记是最受期待的两个AI方向，分别占比62%和55%</p>
+          <p>3. 用户对隐私保护的关注度显著提升，本地化处理成为加分项</p>
+          <p>4. 竞品分析显示华为在AI体验上领先，小米需要在差异化上发力</p>
+          <p style="font-weight:600;margin-top:8px">📌 下一步行动</p>
+          <p>· 补充二三线城市用户样本</p>
+          <p>· 完成竞品AI功能横评报告</p>
+          <p>· 输出用户画像和需求优先级矩阵</p>
+        </div>
+        <div class="toast-actions">
+          <button class="toast-btn toast-btn-secondary" onclick="expandToast(0)">展开查看</button>
+          <button class="toast-btn toast-btn-primary" onclick="insertSummary(0)">插入到正文</button>
+        </div>
+      </div>
+      <div class="insert-success" id="success-0">✅ 已插入到录音下方</div>
+      <div class="editor-toolbar"><span>🔤</span><span>📎</span><span>🎙</span><span>📷</span><span>✨</span></div>
+    </div></div>
+  </div>
+  <div style="text-align:center">
+    <button class="trigger-btn" id="trigger-0" onclick="nextStep(0)">第1步：点击录音条触发解析</button>
+    <button class="trigger-btn" style="background:#f0f0f0;color:#666;margin-left:8px" onclick="resetFlow(0)">重置</button>
+  </div>
+</div>
+
+<!-- ===== 场景2：浮窗交互细节 ===== -->
+<div class="scene-panel" id="panel-1">
+  <div class="scene-desc">
+    <strong>浮窗的三种状态</strong><br>
+    收起态（默认）：预览总结前两行 + 两个按钮。展开态：完整总结内容可滚动查看。消失态：插入成功或手动关闭后消失，点击录音条可重新唤起。
+  </div>
+  <div class="phone-wrap">
+    <div class="phone"><div class="phone-screen" id="screen-1">
+      <div class="note-nav"><span class="back">‹</span><div class="actions"><span>↗</span><span>⋯</span></div></div>
+      <div class="note-title">产品周会纪要</div>
+      <div class="note-body" id="note-body-1">
+        <p>时间：2026年3月18日 14:00</p>
+        <p>参会人：产品组全员</p>
+        <div class="audio-bar audio-bar-done" id="audio-bar-1" onclick="reShowToast(1)">
+          <div class="play-btn">▶</div>
+          <div class="wave" id="wave-1"></div>
+          <div class="duration">23:15</div>
+          <div class="ai-tag"><span class="dot"></span>总结已生成</div>
+        </div>
+        <p>本周重点：AI笔记新架构开发进入冲刺阶段。</p>
+        <p>遗留问题：跨设备同步方案还需要和云服务团队对齐。</p>
+      </div>
+      <div class="float-toast show" id="toast-1" style="bottom:60px;">
+        <div class="toast-header">
+          <div class="toast-title"><span class="ai-icon">AI</span> 总结已生成</div>
+          <button class="toast-close" onclick="closeToast(1)">✕</button>
+        </div>
+        <div class="toast-preview">本次周会讨论了三个核心议题：AI笔记新架构的开发进度、跨设备同步方案的技术选型、以及Q2的产品路线图调整...</div>
+        <div class="toast-full-preview">
+          <p style="font-weight:600;margin-bottom:6px">📋 周会纪要总结</p>
+          <p><strong>议题一：AI笔记新架构</strong></p>
+          <p>· 核心功能开发完成80%，预计下周进入内测</p>
+          <p>· 语音转写模块性能优化已完成，准确率提升至96%</p>
+          <p style="margin-top:6px"><strong>议题二：跨设备同步</strong></p>
+          <p>· 技术方案已确定使用CRDT，需要和云服务团队对齐接口</p>
+          <p style="margin-top:6px"><strong>议题三：Q2路线图</strong></p>
+          <p>· MiClaw集成作为Q2 P0优先级</p>
+          <p>· 文件理解功能降级为P1</p>
+          <p style="font-weight:600;margin-top:8px">📌 待办事项</p>
+          <p>· @设计组：周五前交付浮窗视觉稿</p>
+          <p>· @后端：周三前输出同步接口文档</p>
+        </div>
+        <div class="toast-actions">
+          <button class="toast-btn toast-btn-secondary" onclick="expandToast(1)">展开查看</button>
+          <button class="toast-btn toast-btn-primary" onclick="insertSummary(1)">插入到正文</button>
+        </div>
+      </div>
+      <div class="insert-success" id="success-1">✅ 已插入到录音下方</div>
+      <div class="editor-toolbar"><span>🔤</span><span>📎</span><span>🎙</span><span>📷</span><span>✨</span></div>
+    </div></div>
+  </div>
+  <div style="text-align:center">
+    <button class="trigger-btn" onclick="expandToast(1)">展开浮窗</button>
+    <button class="trigger-btn" style="background:#333" onclick="collapseToast(1)">收起浮窗</button>
+    <button class="trigger-btn" style="background:#f0f0f0;color:#666" onclick="resetScene1()">重置</button>
+  </div>
+</div>
+
+<!-- ===== 场景3：插入位置选择 ===== -->
+<div class="scene-panel" id="panel-2">
+  <div class="scene-desc">
+    <strong>插入位置选择</strong><br>
+    点击"插入到正文"后，浮窗切换为位置选择模式。提供三个选项：录音下方（默认推荐）、笔记末尾、当前光标位置。选中后一键确认插入。
+  </div>
+  <div class="phone-wrap">
+    <div class="phone"><div class="phone-screen" id="screen-2">
+      <div class="note-nav"><span class="back">‹</span><div class="actions"><span>↗</span><span>⋯</span></div></div>
+      <div class="note-title">用户访谈记录</div>
+      <div class="note-body" id="note-body-2">
+        <p>访谈对象：张先生，35岁，互联网从业者</p>
+        <p>访谈时间：2026年3月17日</p>
+        <div class="audio-bar audio-bar-done" id="audio-bar-2">
+          <div class="play-btn">▶</div>
+          <div class="wave" id="wave-2"></div>
+          <div class="duration">15:42</div>
+          <div class="ai-tag"><span class="dot"></span>总结已生成</div>
+        </div>
+        <p>初步印象：用户对AI笔记功能有较高期待，尤其关注语音转文字的准确性。</p>
+        <p id="cursor-marker" style="color:#FF6900;font-size:12px">▎ 光标位置</p>
+        <p>补充问题：需要追问用户对隐私保护的具体顾虑。</p>
+      </div>
+      <div class="float-toast show show-options" id="toast-2" style="bottom:60px;">
+        <div class="toast-header">
+          <div class="toast-title"><span class="ai-icon">AI</span> 选择插入位置</div>
+          <button class="toast-close" onclick="closeToast(2)">✕</button>
+        </div>
+        <div class="insert-options" style="display:block">
+          <div class="insert-option selected" onclick="selectOption(2,0)">
+            <div class="opt-icon">⬇</div>
+            <div><div class="opt-text">录音下方</div><div class="opt-desc">推荐 · 总结紧跟在录音条后面</div></div>
+          </div>
+          <div class="insert-option" onclick="selectOption(2,1)">
+            <div class="opt-icon">⏬</div>
+            <div><div class="opt-text">笔记末尾</div><div class="opt-desc">追加到笔记最后</div></div>
+          </div>
+          <div class="insert-option" onclick="selectOption(2,2)">
+            <div class="opt-icon">📍</div>
+            <div><div class="opt-text">当前光标位置</div><div class="opt-desc">插入到你正在编辑的位置</div></div>
+          </div>
+          <div class="insert-confirm-bar">
+            <button class="toast-btn toast-btn-secondary" onclick="cancelOptions(2)">返回</button>
+            <button class="toast-btn toast-btn-primary" onclick="confirmInsert(2)">确认插入</button>
+          </div>
+        </div>
+        <div class="toast-actions">
+          <button class="toast-btn toast-btn-secondary" onclick="expandToast(2)">展开查看</button>
+          <button class="toast-btn toast-btn-primary" onclick="showOptions(2)">插入到正文</button>
+        </div>
+      </div>
+      <div class="insert-success" id="success-2">✅ 已插入到录音下方</div>
+      <div class="editor-toolbar"><span>🔤</span><span>📎</span><span>🎙</span><span>📷</span><span>✨</span></div>
+    </div></div>
+  </div>
+  <div style="text-align:center">
+    <button class="trigger-btn" onclick="confirmInsert(2)">确认插入</button>
+    <button class="trigger-btn" style="background:#f0f0f0;color:#666" onclick="resetScene2()">重置</button>
+  </div>
+</div>
+
+<script>
+// 生成波形图
+function genWave(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var html = '';
+  for (var i = 0; i < 40; i++) {
+    var h = Math.floor(Math.random() * 16) + 4;
+    html += '<span style="height:' + h + 'px"></span>';
+  }
+  el.innerHTML = html;
+}
+genWave('wave-0'); genWave('wave-1'); genWave('wave-2');
+
+// Tab 切换
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+  document.querySelectorAll('.scene-panel').forEach(function(p, i) { p.classList.toggle('active', i === idx); });
+}
+
+// ===== 场景1：完整流程 =====
+var flowStep = 0;
+var stepLabels = [
+  '第1步：点击录音条触发解析',
+  '第2步：AI解析完成，弹出浮窗',
+  '第3步：展开查看完整总结',
+  '第4步：插入到正文'
+];
+
+function nextStep() {
+  flowStep++;
+  var btn = document.getElementById('trigger-0');
+  var dots = document.querySelectorAll('#steps-0 .step-dot');
+
+  if (flowStep === 1) {
+    // 显示解析中状态
+    document.getElementById('audio-bar-0').classList.add('audio-bar-parsing');
+    document.getElementById('parsing-0').style.display = 'flex';
+    btn.textContent = stepLabels[1];
+    dots.forEach(function(d, i) { d.classList.toggle('active', i === 1); });
+  } else if (flowStep === 2) {
+    // 解析完成，弹出浮窗
+    document.getElementById('audio-bar-0').classList.remove('audio-bar-parsing');
+    document.getElementById('audio-bar-0').classList.add('audio-bar-done');
+    document.getElementById('parsing-0').style.display = 'none';
+    document.getElementById('toast-0').classList.add('show');
+    btn.textContent = stepLabels[2];
+    dots.forEach(function(d, i) { d.classList.toggle('active', i === 2); });
+  } else if (flowStep === 3) {
+    // 展开浮窗
+    expandToast(0);
+    btn.textContent = stepLabels[3];
+    dots.forEach(function(d, i) { d.classList.toggle('active', i === 3); });
+  } else if (flowStep === 4) {
+    // 插入到正文
+    insertSummary(0);
+    btn.textContent = '流程结束 · 点击重置';
+    btn.onclick = function() { resetFlow(); };
+  }
+}
+
+function resetFlow() {
+  flowStep = 0;
+  var btn = document.getElementById('trigger-0');
+  btn.textContent = stepLabels[0];
+  btn.onclick = function() { nextStep(); };
+  document.getElementById('audio-bar-0').classList.remove('audio-bar-parsing', 'audio-bar-done');
+  document.getElementById('parsing-0').style.display = 'none';
+  var toast = document.getElementById('toast-0');
+  toast.classList.remove('show', 'expanded');
+  document.getElementById('success-0').classList.remove('show');
+  // 移除插入的内容
+  var inserted = document.querySelector('#note-body-0 .inserted-content');
+  if (inserted) inserted.remove();
+  var dots = document.querySelectorAll('#steps-0 .step-dot');
+  dots.forEach(function(d, i) { d.classList.toggle('active', i === 0); });
+}
+
+function handleAudioClick(idx) {
+  if (idx === 0 && flowStep === 0) nextStep();
+}
+
+// ===== 通用浮窗操作 =====
+function expandToast(idx) {
+  document.getElementById('toast-' + idx).classList.add('expanded');
+}
+function collapseToast(idx) {
+  document.getElementById('toast-' + idx).classList.remove('expanded');
+}
+function closeToast(idx) {
+  var t = document.getElementById('toast-' + idx);
+  t.classList.remove('show', 'expanded', 'show-options');
+}
+function reShowToast(idx) {
+  var t = document.getElementById('toast-' + idx);
+  if (!t.classList.contains('show')) {
+    t.classList.remove('expanded', 'show-options');
+    t.classList.add('show');
+  }
+}
+
+// 插入总结到正文
+var summaryHTML = '<div class="inserted-content"><strong>📋 AI总结</strong><br>高端用户对AI功能的需求正在从"尝鲜"转向"刚需"。语音助手和智能笔记是最受期待的两个方向，分别占比62%和55%。用户对隐私保护的关注度显著提升，本地化处理成为加分项。</div>';
+
+function insertSummary(idx) {
+  var toast = document.getElementById('toast-' + idx);
+  toast.classList.remove('show', 'expanded', 'show-options');
+  // 在录音条后面插入内容
+  var audioBar = document.getElementById('audio-bar-' + idx);
+  if (audioBar && !audioBar.nextElementSibling.classList.contains('inserted-content')) {
+    var target = audioBar;
+    // 跳过 parsing-status
+    if (idx === 0) {
+      target = document.getElementById('parsing-0');
+    }
+    target.insertAdjacentHTML('afterend', summaryHTML);
+  }
+  // 显示成功提示
+  var success = document.getElementById('success-' + idx);
+  success.classList.add('show');
+  setTimeout(function() { success.classList.remove('show'); }, 1500);
+}
+
+// ===== 场景2 =====
+function resetScene1() {
+  var toast = document.getElementById('toast-1');
+  toast.classList.remove('expanded', 'show-options');
+  toast.classList.add('show');
+  document.getElementById('success-1').classList.remove('show');
+  var inserted = document.querySelector('#note-body-1 .inserted-content');
+  if (inserted) inserted.remove();
+}
+
+// ===== 场景3：插入位置选择 =====
+var selectedOption = [0, 0, 0];
+var optionLabels = ['录音下方', '笔记末尾', '当前光标位置'];
+
+function showOptions(idx) {
+  document.getElementById('toast-' + idx).classList.add('show-options');
+}
+function cancelOptions(idx) {
+  document.getElementById('toast-' + idx).classList.remove('show-options');
+}
+function selectOption(idx, opt) {
+  selectedOption[idx] = opt;
+  var options = document.querySelectorAll('#toast-' + idx + ' .insert-option');
+  options.forEach(function(o, i) { o.classList.toggle('selected', i === opt); });
+}
+
+function confirmInsert(idx) {
+  var toast = document.getElementById('toast-' + idx);
+  toast.classList.remove('show', 'expanded', 'show-options');
+  var opt = selectedOption[idx];
+  var content = '<div class="inserted-content"><strong>📋 AI总结</strong><br>受访者对AI笔记功能期待较高，核心诉求集中在语音转文字准确性（提及率78%）和自动整理能力（提及率65%）。隐私方面，用户明确希望数据本地处理。</div>';
+
+  if (opt === 0) {
+    // 录音下方
+    var bar = document.getElementById('audio-bar-' + idx);
+    bar.insertAdjacentHTML('afterend', content);
+  } else if (opt === 1) {
+    // 笔记末尾
+    document.getElementById('note-body-' + idx).insertAdjacentHTML('beforeend', content);
+  } else {
+    // 光标位置
+    var cursor = document.getElementById('cursor-marker');
+    if (cursor) cursor.insertAdjacentHTML('afterend', content);
+  }
+
+  var success = document.getElementById('success-' + idx);
+  success.textContent = '✅ 已插入到' + optionLabels[opt];
+  success.classList.add('show');
+  setTimeout(function() { success.classList.remove('show'); }, 1500);
+}
+
+function resetScene2() {
+  var toast = document.getElementById('toast-2');
+  toast.classList.remove('expanded');
+  toast.classList.add('show', 'show-options');
+  selectedOption[2] = 0;
+  var options = document.querySelectorAll('#toast-2 .insert-option');
+  options.forEach(function(o, i) { o.classList.toggle('selected', i === 0); });
+  document.getElementById('success-2').classList.remove('show');
+  var items = document.querySelectorAll('#note-body-2 .inserted-content');
+  items.forEach(function(el) { el.remove(); });
+}
+</script>
+
+</body>
+</html>

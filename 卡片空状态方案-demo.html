@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卡片空状态方案 · Demo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, 'PingFang SC', sans-serif; background: #f0f0f5; color: #1a1a1a; }
+
+.page-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 10; }
+.page-header h1 { font-size: 17px; font-weight: 600; }
+.page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+.tab-bar { display: flex; background: #fff; border-bottom: 1px solid #eee; padding: 0 16px; position: sticky; top: 61px; z-index: 10; overflow-x: auto; }
+.tab { padding: 12px 16px; font-size: 14px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
+.tab.active { color: #FF6900; border-bottom-color: #FF6900; font-weight: 600; }
+
+.scene-panel { display: none; padding: 20px 16px; max-width: 480px; margin: 0 auto; }
+.scene-panel.active { display: block; }
+.section-label { font-size: 11px; color: #aaa; margin-bottom: 8px; letter-spacing: .5px; font-weight: 500; }
+.cards-group { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+
+/* 笔记正文模拟 */
+.note-ctx { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.note-text { font-size: 15px; line-height: 1.85; color: #333; margin-bottom: 14px; }
+.note-divider { height: 1px; background: #f0f0f0; margin: 14px 0; }
+
+/* ===== 正常卡片（对比用） ===== */
+.card-normal { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.card-normal .card-inner { display: flex; align-items: center; padding: 12px 14px; gap: 12px; }
+.card-normal .card-icon { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.card-normal .card-icon.doc { background: #e3f2fd; }
+.card-normal .card-icon.audio { background: #fce4ec; }
+.card-normal .card-icon.web { background: #fff3e0; }
+.card-normal .card-text { flex: 1; min-width: 0; }
+.card-normal .card-title { font-size: 14px; font-weight: 600; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-normal .card-sub { font-size: 12px; color: #999; margin-top: 2px; }
+
+/* ===== 空状态卡片 ===== */
+.card-empty { border-radius: 12px; overflow: hidden; }
+.card-empty .card-inner { display: flex; align-items: center; padding: 12px 14px; gap: 12px; background: #fafafa; border: 1px dashed #ddd; border-radius: 12px; }
+.card-empty .card-icon { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f0f0f0; }
+.card-empty .card-text { flex: 1; min-width: 0; }
+.card-empty .card-title { font-size: 13px; color: #bbb; line-height: 1.4; }
+.card-empty .card-sub { font-size: 12px; color: #ccc; margin-top: 2px; }
+.card-empty .card-action { font-size: 12px; color: #FF6900; margin-top: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
+.card-empty .card-action:hover { text-decoration: underline; }
+
+/* 空状态 icon 灰色调 */
+.card-empty .icon-doc { color: #ccc; }
+.card-empty .icon-audio { color: #ccc; }
+.card-empty .icon-web { color: #ccc; }
+
+/* ===== 方案对比标签 ===== */
+.compare-label { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-bottom: 8px; font-weight: 500; }
+.label-normal { background: #e8f5e9; color: #2e7d32; }
+.label-empty { background: #fce4ec; color: #c62828; }
+.label-ctx { background: #e3f2fd; color: #1565c0; }
+
+/* ===== 决策说明表 ===== */
+.decision-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+.decision-table th { background: #f8f8f8; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #eee; }
+.decision-table td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; color: #333; vertical-align: top; line-height: 1.5; }
+.decision-table tr:last-child td { border-bottom: none; }
+
+/* ===== 长按菜单模拟 ===== */
+.longpress-menu { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.15); padding: 6px 0; width: 180px; margin: 12px auto; }
+.menu-item { padding: 10px 16px; font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.menu-item:hover { background: #f5f5f5; }
+.menu-item.danger { color: #d32f2f; }
+.menu-item .mi { font-size: 16px; }
+
+/* ===== Toast 提示 ===== */
+.toast-demo { background: rgba(0,0,0,.75); color: #fff; font-size: 13px; padding: 8px 16px; border-radius: 20px; display: inline-block; margin: 12px auto; }
+.toast-wrap { text-align: center; }
+
+/* ===== 未知类型卡片（版本过低） ===== */
+.card-unknown { border-radius: 12px; overflow: hidden; }
+.card-unknown .card-inner { display: flex; align-items: center; padding: 12px 14px; gap: 12px; background: #fafafa; border: 1px dashed #ddd; border-radius: 12px; }
+.card-unknown .card-icon { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f0f0f0; }
+.card-unknown .card-text { flex: 1; min-width: 0; }
+.card-unknown .card-title { font-size: 13px; color: #999; line-height: 1.4; }
+.card-unknown .card-sub { font-size: 12px; color: #bbb; margin-top: 2px; }
+.card-unknown .btn-upgrade { display: inline-block; margin-top: 6px; font-size: 12px; color: #fff; background: #FF6900; border: none; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-weight: 500; }
+.card-unknown .btn-upgrade:hover { background: #e55d00; }
+.label-unknown { background: #fff3e0; color: #e65100; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>卡片空状态方案</h1>
+  <p>文档卡片 / 音频卡片 / 网页卡片 · 原文件被删除后的占位展示</p>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab(0)">正常 vs 空状态</div>
+  <div class="tab" onclick="switchTab(1)">笔记内嵌效果</div>
+  <div class="tab" onclick="switchTab(2)">交互行为</div>
+  <div class="tab" onclick="switchTab(3)">设计规则</div>
+</div>
+
+<!-- Tab 0: 正常 vs 空状态 -->
+<div class="scene-panel active" id="panel-0">
+
+  <!-- 文档卡片 -->
+  <div class="section-label">文档卡片</div>
+  <div class="cards-group">
+    <div><span class="compare-label label-normal">正常状态</span></div>
+    <div class="card-normal">
+      <div class="card-inner">
+        <div class="card-icon doc">📄</div>
+        <div class="card-text">
+          <div class="card-title">Q1 产品规划.pdf</div>
+          <div class="card-sub">PDF · 2.3 MB · 2026-01-15</div>
+        </div>
+      </div>
+    </div>
+
+    <div><span class="compare-label label-empty">文件已删除</span></div>
+    <div class="card-empty">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15" opacity=".4"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">文件已被删除</div>
+          <div class="card-sub">Q1 产品规划.pdf</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 音频卡片 -->
+  <div class="section-label">音频卡片</div>
+  <div class="cards-group">
+    <div><span class="compare-label label-normal">正常状态</span></div>
+    <div class="card-normal">
+      <div class="card-inner">
+        <div class="card-icon audio">🎙️</div>
+        <div class="card-text">
+          <div class="card-title">产品评审会议录音</div>
+          <div class="card-sub">录音 · 45:32 · 2026-03-10</div>
+        </div>
+      </div>
+    </div>
+
+    <div><span class="compare-label label-empty">录音已删除</span></div>
+    <div class="card-empty">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23" opacity=".4"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">录音已被删除</div>
+          <div class="card-sub">产品评审会议录音 · 45:32</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 网页卡片 -->
+  <div class="section-label">网页卡片</div>
+  <div class="cards-group">
+    <div><span class="compare-label label-normal">正常状态</span></div>
+    <div class="card-normal">
+      <div class="card-inner">
+        <div class="card-icon web">🔗</div>
+        <div class="card-text">
+          <div class="card-title">Figma 设计图 MCP server 实战</div>
+          <div class="card-sub">小红书 · xiaohongshu.com</div>
+        </div>
+      </div>
+    </div>
+
+    <div><span class="compare-label label-empty">网页无法访问</span></div>
+    <div class="card-empty">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12" opacity=".4"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" opacity=".4"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">网页无法访问</div>
+          <div class="card-sub">xiaohongshu.com/discovery/item/...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 未知类型卡片 -->
+  <div class="section-label">未知类型卡片</div>
+  <div class="cards-group">
+    <div><span class="compare-label label-unknown">版本过低，无法识别</span></div>
+    <div class="card-unknown">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">当前版本暂不支持查看此内容</div>
+          <div class="card-sub">升级到最新版本即可正常显示</div>
+          <button class="btn-upgrade" onclick="showToastUpgrade()">去升级</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 1: 笔记内嵌效果 -->
+<div class="scene-panel" id="panel-1">
+  <div class="note-ctx">
+    <div class="note-text">上周产品评审会的录音和文档都在这里，方便后续回顾。</div>
+    <div class="note-divider"></div>
+
+    <!-- 正常文档卡片 -->
+    <div class="card-normal" style="margin-bottom:10px">
+      <div class="card-inner">
+        <div class="card-icon doc">📄</div>
+        <div class="card-text">
+          <div class="card-title">产品评审 PPT v3.pptx</div>
+          <div class="card-sub">PPTX · 8.1 MB · 2026-03-08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空状态：录音已删除 -->
+    <div class="card-empty" style="margin-bottom:10px">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23" opacity=".4"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">录音已被删除</div>
+          <div class="card-sub">产品评审会议录音 · 45:32</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-divider"></div>
+    <div class="note-text">另外参考了这篇文章的设计思路：</div>
+    <div class="note-divider"></div>
+
+    <!-- 空状态：文件已删除 -->
+    <div class="card-empty" style="margin-bottom:10px">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15" opacity=".4"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">文件已被删除</div>
+          <div class="card-sub">竞品分析报告-华为笔记.docx</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-divider"></div>
+    <div class="note-text" style="margin-bottom:0">下周需要重新整理一版，记得找设计要最新的交互稿。</div>
+
+    <div class="note-divider"></div>
+
+    <!-- 未知类型卡片 -->
+    <div class="card-unknown" style="margin-bottom:10px">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">当前版本暂不支持查看此内容</div>
+          <div class="card-sub">升级到最新版本即可正常显示</div>
+          <button class="btn-upgrade" onclick="showToastUpgrade()">去升级</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 2: 交互行为 -->
+<div class="scene-panel" id="panel-2">
+  <div class="section-label">点击空状态卡片</div>
+  <div class="cards-group">
+    <div class="card-empty" onclick="showToast()" style="cursor:pointer">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15" opacity=".4"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">文件已被删除</div>
+          <div class="card-sub">Q1 产品规划.pdf</div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">👆 点击试试：弹出 Toast 提示「原文件已被删除，无法打开」</p>
+    <div class="toast-wrap" id="toast-area" style="display:none">
+      <div class="toast-demo">原文件已被删除，无法打开</div>
+    </div>
+  </div>
+
+  <div class="section-label">长按空状态卡片</div>
+  <div class="cards-group">
+    <p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:4px">长按弹出操作菜单，提供两个选项：</p>
+    <div class="longpress-menu">
+      <div class="menu-item"><span class="mi">🔄</span> 重新选择文件</div>
+      <div class="menu-item danger"><span class="mi">🗑️</span> 移除此卡片</div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">「重新选择文件」→ 打开文件选择器，替换为新文件<br>「移除此卡片」→ 从笔记中删除这个空状态占位</p>
+  </div>
+
+  <div class="section-label">点击未知类型卡片</div>
+  <div class="cards-group">
+    <div class="card-unknown" onclick="showToastUpgrade()" style="cursor:pointer">
+      <div class="card-inner">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">当前版本暂不支持查看此内容</div>
+          <div class="card-sub">升级到最新版本即可正常显示</div>
+          <button class="btn-upgrade">去升级</button>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:#999;line-height:1.6">👆 点击试试：点击卡片或「去升级」按钮，跳转应用商店更新页</p>
+    <div class="toast-wrap" id="toast-upgrade" style="display:none">
+      <div class="toast-demo">正在跳转应用商店…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 3: 设计规则 -->
+<div class="scene-panel" id="panel-3">
+  <p style="font-size:13px;color:#555;line-height:1.7;margin-bottom:16px">空状态卡片的设计原则和各卡片类型的差异处理：</p>
+
+  <div class="section-label">设计原则</div>
+  <table class="decision-table" style="margin-bottom:20px">
+    <thead><tr><th>原则</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>保留占位</td><td>不自动删除卡片，保留在笔记原位置，让用户知道「这里曾经有个东西」</td></tr>
+      <tr><td>降低视觉权重</td><td>灰色调 + 虚线边框 + 浅背景，和正常卡片形成明显区分，不抢注意力</td></tr>
+      <tr><td>保留原始信息</td><td>副标题保留原文件名/原时长/原域名，方便用户回忆是什么内容</td></tr>
+      <tr><td>可操作</td><td>长按可替换或移除，不是死的占位</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">各卡片类型差异</div>
+  <table class="decision-table" style="margin-bottom:20px">
+    <thead><tr><th>卡片类型</th><th>空状态文案</th><th>副标题保留</th><th>icon</th></tr></thead>
+    <tbody>
+      <tr><td>文档卡片</td><td>文件已被删除</td><td>原文件名 + 格式</td><td>灰色文档 icon</td></tr>
+      <tr><td>音频卡片</td><td>录音已被删除</td><td>原录音名 + 时长</td><td>灰色麦克风 icon</td></tr>
+      <tr><td>网页卡片</td><td>网页无法访问</td><td>原域名 + 路径</td><td>灰色地球 icon</td></tr>
+      <tr><td>未知类型</td><td>当前版本暂不支持查看此内容</td><td>升级到最新版本即可正常显示</td><td>灰色感叹号 icon + 「去升级」按钮</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">触发条件</div>
+  <table class="decision-table" style="margin-bottom:20px">
+    <thead><tr><th>场景</th><th>处理方式</th></tr></thead>
+    <tbody>
+      <tr><td>本地文件被删除</td><td>打开笔记时检测文件是否存在，不存在则切换为空状态</td></tr>
+      <tr><td>云端文件被删除</td><td>请求文件信息返回 404 时切换为空状态</td></tr>
+      <tr><td>网页链接失效</td><td>后台定期检测（或用户点击时检测），连续 3 次失败后切换为空状态</td></tr>
+      <tr><td>录音文件被删除</td><td>同本地文件逻辑，打开笔记时检测</td></tr>
+      <tr><td>卡片类型无法识别</td><td>笔记版本低于卡片所需最低版本时，展示未知类型占位</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">交互规则</div>
+  <table class="decision-table">
+    <thead><tr><th>操作</th><th>行为</th></tr></thead>
+    <tbody>
+      <tr><td>点击</td><td>Toast 提示「原文件已被删除，无法打开」，不跳转</td></tr>
+      <tr><td>长按</td><td>弹出菜单：重新选择文件 / 移除此卡片</td></tr>
+      <tr><td>编辑模式下</td><td>卡片右上角显示 × 按钮，可直接移除</td></tr>
+      <tr><td>批量操作</td><td>支持「清理所有失效卡片」（设置页入口）</td></tr>
+      <tr><td>点击未知类型卡片</td><td>点击卡片任意区域或「去升级」按钮，跳转应用商店更新页</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.scene-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+}
+function showToast() {
+  const el = document.getElementById('toast-area');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
+function showToastUpgrade() {
+  const el = document.getElementById('toast-upgrade');
+  if (el) { el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 2000); }
+}
+</script>
+</body>
+</html>
