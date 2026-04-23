@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关联笔记开关 · 方案G变体对比</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC",sans-serif;background:#0a0a0f;color:#e8e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;-webkit-font-smoothing:antialiased}
+.page-header{text-align:center;padding:48px 20px 20px}
+.page-header h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,#FF6A00,#FFB366);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.page-header .sub{font-size:12px;color:#5a5a72;margin-top:6px}
+.row{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;padding:12px 20px 60px}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.col .label{font-size:12px;color:#a0a0c0;font-weight:600}
+.col .desc{font-size:11px;color:#5a5a72;max-width:375px;text-align:center;line-height:1.5}
+.phone{width:375px;height:640px;background:#fff;border-radius:44px;overflow:hidden;box-shadow:0 8px 48px rgba(0,0,0,0.5);display:flex;flex-direction:column;position:relative}
+.ph-nav{display:flex;align-items:center;padding:50px 16px 8px}
+.ph-scroll{flex:1;overflow-y:auto;padding:0}
+.note-title{font-size:20px;font-weight:700;color:#1a1a1a;padding:8px 20px 4px}
+.note-meta{font-size:12px;color:#999;padding:0 20px 16px}
+.note-body{font-size:14px;color:#333;line-height:1.8;padding:0 20px 16px}
+.note-body p{margin-bottom:10px}
+.ref-area{padding:0 20px;margin-bottom:4px}
+.ref-label{font-size:12px;color:#999;margin-bottom:8px}
+.ref-card{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #f0f0f3}
+.ref-card:last-child{border-bottom:none}
+.ref-title{flex:1;font-size:14px;color:#1a1a1a}
+.ref-chevron{color:#ccc;font-size:14px}
+.ai-pill-bar{position:absolute;bottom:0;left:0;right:0;padding:10px 20px 28px;background:linear-gradient(transparent,#fff 30%)}
+.ai-pill{display:flex;align-items:center;gap:8px;background:#f8f8fa;border:1px solid #e8e8ec;border-radius:24px;padding:10px 16px;font-size:13px;color:#999}
+
+/* G1: 圆角提示条（图标+标题+描述） */
+.g1 .ib{margin:12px 20px 80px;padding:14px 16px;background:#f8f8fa;border-radius:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s}
+.g1 .ib:active{background:#f0f0f2}
+.g1 .ii{font-size:20px;flex-shrink:0}
+.g1 .it{flex:1}
+.g1 .it1{font-size:13px;color:#1a1a1a;font-weight:500}
+.g1 .it2{font-size:11px;color:#999;margin-top:2px}
+.g1 .ia{color:#ccc;font-size:16px}
+
+/* G2: 极简提示条（无描述，单行） */
+.g2 .ib{margin:12px 20px 80px;padding:12px 16px;background:#f8f8fa;border-radius:10px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s}
+.g2 .ib:active{background:#f0f0f2}
+.g2 .ii{font-size:16px;flex-shrink:0}
+.g2 .it{flex:1;font-size:13px;color:#666}
+.g2 .ia{color:#ccc;font-size:14px}
+
+/* G3: 和被引用统一风格（分组标题+卡片行） */
+.g3 .ga{padding:0 20px;margin-bottom:80px}
+.g3 .gl{font-size:12px;color:#999;margin-bottom:8px}
+.g3 .gc{display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer}
+.g3 .gc:active{opacity:0.6}
+.g3 .gi{width:18px;height:18px;flex-shrink:0;color:#ccc}
+.g3 .gt{flex:1;font-size:14px;color:#bbb}
+.g3 .ga2{color:#ccc;font-size:14px}
+
+/* G4: 带边框的轻卡片 */
+.g4 .ib{margin:12px 20px 80px;padding:14px 16px;background:#fff;border:1px solid #e8e8ec;border-radius:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+.g4 .ib:active{border-color:#ccc}
+.g4 .ii{font-size:18px;flex-shrink:0}
+.g4 .it{flex:1}
+.g4 .it1{font-size:13px;color:#333;font-weight:500}
+.g4 .it2{font-size:11px;color:#aaa;margin-top:2px}
+.g4 .ia{color:#ccc;font-size:14px}
+
+/* G5: 纯文字链接（最极简） */
+.g5 .el{padding:16px 20px 80px}
+.g5 .el a{font-size:13px;color:#999;text-decoration:none;cursor:pointer}
+.g5 .el a:active{color:#666}
+
+/* G6: 胶囊标签 */
+.g6 .el{padding:12px 20px 80px}
+.g6 .tag{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;background:#f5f5f7;border-radius:18px;font-size:12px;color:#888;cursor:pointer;border:none;transition:background .15s}
+.g6 .tag:active{background:#ebebed}
+
+/* G7: 虚线分隔+居中文字 */
+.g7 .el{padding:0 20px 80px;margin-top:8px;border-top:1px dashed #e0e0e0;padding-top:16px;text-align:center}
+.g7 .el a{font-size:13px;color:#bbb;text-decoration:none;cursor:pointer}
+.g7 .el a:active{color:#999}
+
+/* G8: 左侧竖线强调 */
+.g8 .el{margin:12px 20px 80px;padding:10px 14px;border-left:3px solid #e0e0e0;cursor:pointer;transition:border-color .15s}
+.g8 .el:active{border-color:#bbb}
+.g8 .el .t1{font-size:13px;color:#666}
+.g8 .el .t2{font-size:11px;color:#bbb;margin-top:3px}
+</style>
+</head>
+<body>
+<div class="page-header">
+  <h1>关联笔记开关 · 方案G变体对比</h1>
+  <div class="sub">基于圆角提示条方向的 4 种轻量变体</div>
+</div>
+<div class="row">
+
+<!-- G1 -->
+<div class="col">
+<div class="label">G1：提示条（标题+描述）</div>
+<div class="desc">灰色背景圆角卡片，图标+标题+描述，信息最完整</div>
+<div class="phone g1">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="ib"><div class="ii">🔗</div><div class="it"><div class="it1">发现关联笔记</div><div class="it2">找到与当前笔记相关的其他笔记</div></div><div class="ia">›</div></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+<!-- G2 -->
+<div class="col">
+<div class="label">G2：极简提示条（单行）</div>
+<div class="desc">去掉描述文字，只保留图标+一行文字，最轻量</div>
+<div class="phone g2">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="ib"><div class="ii">🔗</div><div class="it">发现关联笔记</div><div class="ia">›</div></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+<!-- G3 -->
+<div class="col">
+<div class="label">G3：和被引用统一风格</div>
+<div class="desc">用"关联笔记："标题+列表行，和上方被引用视觉一致，无背景色</div>
+<div class="phone g3">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="ga"><div class="gl">关联笔记：</div><div class="gc"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div class="gt">发现关联笔记</div><div class="ga2">›</div></div></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+<!-- G4 -->
+<div class="col">
+<div class="label">G4：带边框轻卡片</div>
+<div class="desc">白色背景+细边框，比G1更轻，和页面融合但有独立感</div>
+<div class="phone g4">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="ib"><div class="ii">🔗</div><div class="it"><div class="it1">发现关联笔记</div><div class="it2">找到与当前笔记相关的其他笔记</div></div><div class="ia">›</div></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+<!-- G5 -->
+<div class="col">
+<div class="label">G5：纯文字链接</div>
+<div class="desc">最极简，一行灰色文字，几乎不占视觉空间</div>
+<div class="phone g5">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="el"><a>🔗 发现关联笔记 ›</a></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+<!-- G6 -->
+<div class="col">
+<div class="label">G6：胶囊标签</div>
+<div class="desc">圆角胶囊按钮，比文字链接更有存在感，比卡片更轻</div>
+<div class="phone g6">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="el"><button class="tag">🔗 发现关联笔记</button></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+<!-- G7 -->
+<div class="col">
+<div class="label">G7：虚线分隔 + 居中</div>
+<div class="desc">虚线把被引用和入口视觉分开，居中文字更像独立区块</div>
+<div class="phone g7">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="el"><a>🔗 发现关联笔记 ›</a></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+<!-- G8 -->
+<div class="col">
+<div class="label">G8：左侧竖线强调</div>
+<div class="desc">左侧灰色竖线，像引用块，暗示"这里有待展开的内容"</div>
+<div class="phone g8">
+<div class="ph-nav"><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+<div class="ph-scroll">
+<div class="note-title">Obsidian 竞品分析</div>
+<div class="note-meta">2025年3月15日 · 1200字 · 竞品分析</div>
+<div class="note-body"><p>关联方式：用户在正文中输入 [[笔记名]] 手动建立双向链接</p><p>呈现：反向链接面板展示所有引用当前页面的页面</p><p>优点：关联精确度极高</p><p>缺点：门槛极高，需要用户养成习惯</p></div>
+<div class="ref-area"><div class="ref-label">被以下笔记引用：</div><div class="ref-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="ref-title">关联笔记推荐方案</div><div class="ref-chevron">›</div></div></div>
+<div class="el"><div class="t1">🔗 发现关联笔记</div><div class="t2">找到与当前笔记相关的其他笔记</div></div>
+</div>
+<div class="ai-pill-bar"><div class="ai-pill">✨ 总结、润色、对话...</div></div>
+</div>
+</div>
+
+</div>
+</body>
+</html>

@@ -74,6 +74,31 @@ body{font-family:-apple-system,"SF Pro Display","PingFang SC","Noto Sans SC",san
 .rc-icon{width:20px;height:20px;flex-shrink:0;color:#bbb}
 .rc-title{flex:1;font-size:14px;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc-chevron{flex-shrink:0;color:#ccc}
+.enable-card{margin:24px 20px 100px;padding:20px;background:linear-gradient(135deg,#f8f9ff,#f0f4ff);border:1px solid rgba(59,130,246,0.12);border-radius:14px;text-align:center}
+.enable-card .ec-icon{font-size:24px;margin-bottom:8px}
+.enable-card .ec-title{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:6px}
+.enable-card .ec-desc{font-size:12px;color:#888;line-height:1.5;margin-bottom:14px}
+.enable-card .ec-btn{display:inline-block;padding:8px 28px;background:#3b82f6;color:#fff;font-size:13px;font-weight:600;border-radius:20px;cursor:pointer;transition:background 0.2s}
+.enable-card .ec-btn:active{background:#2563eb}
+.enable-card .ec-loading{font-size:12px;color:#3b82f6;padding:10px 0}
+.enable-card .ec-loading .spinner{display:inline-block;width:14px;height:14px;border:2px solid #3b82f6;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Settings Page ── */
+.settings-page{display:flex;flex-direction:column;height:100%;background:#f5f5f7;border-radius:44px;overflow:hidden}
+.settings-scroll{flex:1;overflow-y:auto;padding:0 0 40px}
+.settings-group{background:#fff;border-radius:12px;margin:12px 16px;overflow:hidden}
+.settings-group-title{font-size:12px;color:#888;padding:20px 16px 6px;text-transform:uppercase;letter-spacing:0.5px}
+.settings-item{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f0f0f2}
+.settings-item:last-child{border-bottom:none}
+.settings-item .si-label{flex:1;font-size:15px;color:#1a1a1a}
+.settings-item .si-desc{font-size:12px;color:#999;margin-top:2px}
+.settings-item .si-toggle{width:44px;height:26px;border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
+.si-toggle.off{background:#e0e0e0}
+.si-toggle.on{background:#34c759}
+.si-toggle::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:2px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
+.si-toggle.off::after{left:2px}
+.si-toggle.on::after{left:20px}
 
 /* ── Bottom Pill ── */
 .ph-bottom{position:absolute;bottom:0;left:0;right:0;padding:8px 20px 32px;background:linear-gradient(transparent,#fff 20%);pointer-events:none}
@@ -134,6 +159,7 @@ var currentDataset = 0;
 var NOTES, LLM_RESULTS, LLM_FILTERED;
 var homeScrollTop = 0;
 var currentFilter = undefined;
+var aiRelatedEnabled = false;
 
 function switchDataset(idx) {
   currentDataset = idx;
@@ -519,7 +545,7 @@ function renderHome(filterCategory, restoreScroll) {
     + '</div>'
     + '<div class="home-top">'
     + '<div class="icon-btn">' + SVG_CHECK + '</div>'
-    + '<div class="icon-btn">' + SVG_DOTS + '</div>'
+    + '<div class="icon-btn" onclick="renderSettings()">' + SVG_DOTS + '</div>'
     + '</div>'
     + '<div class="home-header"><h2>\u7b14\u8bb0</h2></div>'
     + '<div class="home-search">' + SVG_Q + ' <span>\u641c\u7d22</span></div>'
@@ -559,7 +585,14 @@ function renderDetail(noteId) {
 
   // Build related HTML
   let relatedHTML = '';
-  if (displayResults.length > 0) {
+  if (!aiRelatedEnabled) {
+    // 未开启：G3风格，搜索图标+文字，居中
+    relatedHTML = '<div style="padding:16px 20px 100px;text-align:center" id="enableArea">'
+      + '<span onclick="enableRelated(' + noteId + ')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:1px solid #e0e0e0;border-radius:20px;font-size:13px;color:#999;cursor:pointer;transition:background 0.15s">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      + '发现关联笔记</span>'
+      + '</div>';
+  } else if (displayResults.length > 0) {
     let cards = '';
     for (const r of displayResults) {
       cards += '<div class="related-card" onclick="renderDetail(' + r.noteId + ')">'
@@ -569,6 +602,11 @@ function renderDetail(noteId) {
         + '</div>';
     }
     relatedHTML = '<div class="related-area"><div class="related-label">关联笔记：</div>' + cards + '</div>';
+  }
+
+  // Ensure bottom padding when no related content
+  if (!relatedHTML) {
+    relatedHTML = '<div style="height:80px"></div>';
   }
 
   phone.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;background:#fff;border-radius:44px;overflow:hidden">'
@@ -653,6 +691,101 @@ function renderRightPanel(note, allResults, displayResults) {
     + filteredHTML;
 
   rightPanel.classList.add('visible');
+}
+
+// Settings Page
+function renderSettings() {
+  rightPanel.classList.remove('visible');
+  rightPanel.innerHTML = '';
+
+  var SVG_BACK2 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>';
+  var SVG_BATT2 = '<svg width="14" height="10" viewBox="0 0 28 16"><rect x="0" y="0" width="24" height="16" rx="3" fill="none" stroke="#333" stroke-width="2"/><rect x="24" y="4" width="4" height="8" rx="1" fill="#333"/><rect x="2" y="2" width="20" height="12" rx="1.5" fill="#333"/></svg>';
+
+  phone.innerHTML = '<div class="settings-page">'
+    + '<div class="ph-sb"><span class="time">14:42</span><div class="right">' + SVG_BATT2 + ' <span style="font-weight:700;font-size:11px;margin-left:2px">87</span></div></div>'
+    + '<div class="ph-nav">'
+    + '<div class="back" onclick="renderHome(currentFilter)">' + SVG_BACK2 + '</div>'
+    + '<div style="flex:1"></div>'
+    + '</div>'
+    + '<div class="settings-scroll">'
+    + '<div style="padding:4px 24px 16px"><h2 style="font-size:26px;font-weight:700;color:#1a1a1a">设置</h2></div>'
+    + '<div class="settings-group-title">AI 功能设置</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item">'
+    + '<div style="flex:1"><div class="si-label">智能通话笔记</div><div class="si-desc">通话录音结束后自动识别关键内容，生成结构化笔记，减少手动整理</div></div>'
+    + '<div class="si-toggle off"></div>'
+    + '</div>'
+    + '<div class="settings-item">'
+    + '<div style="flex:1"><div class="si-label">关联笔记推荐</div><div class="si-desc">分析笔记内容，自动推荐相关笔记</div></div>'
+    + '<div class="si-toggle ' + (aiRelatedEnabled ? 'on' : 'off') + '" onclick="toggleRelated(this)"></div>'
+    + '</div>'
+    + '</div>'
+    + '<div class="settings-group-title">云服务</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div style="flex:1"><div class="si-label">小米云同步</div><div class="si-desc">开启后数据将自动同步</div></div><div style="color:#ccc">›</div></div>'
+    + '<div class="settings-item"><div style="flex:1"><div class="si-label">云端回收站</div><div class="si-desc">查看和恢复云端已删除的笔记</div></div><div style="color:#ccc">›</div></div>'
+    + '</div>'
+    + '<div class="settings-group-title">提醒</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div style="flex:1"><div class="si-label">强提醒</div><div class="si-desc">持续响铃且静音和勿扰状态下仍有效</div></div><div class="si-toggle off"></div></div>'
+    + '</div>'
+    + '<div class="settings-group-title">版本与备案</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div class="si-label">版本信息</div><div style="color:#ccc">›</div></div>'
+    + '<div class="settings-item"><div class="si-label">备案信息</div><div style="color:#ccc">›</div></div>'
+    + '</div>'
+    + '<div class="settings-group-title">其他设置</div>'
+    + '<div class="settings-group">'
+    + '<div class="settings-item"><div class="si-label">隐私设置</div><div style="color:#ccc">›</div></div>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function toggleRelated(el) {
+  aiRelatedEnabled = !aiRelatedEnabled;
+  if (aiRelatedEnabled) {
+    el.className = 'si-toggle on';
+  } else {
+    el.className = 'si-toggle off';
+  }
+}
+
+// Enable AI Related Notes
+function enableRelated(noteId) {
+  // 原地替换为加载态（G3风格居中）
+  var area = document.getElementById('enableArea');
+  if (area) {
+    area.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:1px solid #e0e0e0;border-radius:20px;font-size:13px;color:#999">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"/></svg>'
+      + '正在查找关联笔记...</span>';
+  }
+  setTimeout(function() {
+    aiRelatedEnabled = true;
+    // 构建关联结果
+    var allResults = computeRelated(noteId);
+    var displayResults = getDisplayResults(allResults);
+    if (area) {
+      if (displayResults.length > 0) {
+        var cards = '<div class="related-area"><div class="related-label">关联笔记：</div>';
+        for (var i = 0; i < displayResults.length; i++) {
+          var r = displayResults[i];
+          cards += '<div class="related-card" onclick="renderDetail(' + r.noteId + ')">'
+            + '<div class="rc-icon">' + SVG_DOC + '</div>'
+            + '<div class="rc-title">' + r.title + '</div>'
+            + '<div class="rc-chevron">' + SVG_CHEVRON + '</div>'
+            + '</div>';
+        }
+        cards += '</div>';
+        area.outerHTML = cards;
+      } else {
+        area.outerHTML = '';
+      }
+    }
+    // 更新右侧面板
+    var note = NOTES.find(function(n) { return n.id === noteId; });
+    if (note) renderRightPanel(note, allResults, displayResults);
+  }, 1500);
 }
 
 // Init
